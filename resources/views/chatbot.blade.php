@@ -859,7 +859,7 @@
         }
 
         .padding {
-            padding: 3rem
+            padding: 2.5rem
         }
 
         .box.box-warning {
