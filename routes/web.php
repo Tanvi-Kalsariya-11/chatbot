@@ -15,19 +15,21 @@ use App\Http\Controllers\AiController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('chatbot');
 });
 
-// Route::get('/', [AiController::class, 'index']);
+// Route::get('/chatbot', [AiController::class, 'index'])->name('chatbot');
 
 Route::get('/assistants', [AiController::class,'createAssistance']); // Create OpenAI Assistant
 Route::get('/list-assistants', [AiController::class,'listAssistants']); // List all created Assistants
 
 Route::get('/thread', [AiController::class,'createThread']); // Create Thread in Assistant
-Route::get('/thread/{id}', [AiController::class,'getThread']); // Retrieve thread info | id=threadId
+Route::get('/thread/{id}', [AiController::class,'getThread'])->name('getThread'); // Retrieve thread info | id=threadId
 
-Route::post('/create-message', [AiController::class,'createMessage']); // Create Message in selected thread
+Route::post('/create-message', [AiController::class,'createMessage'])->name('createMessage'); // Create Message in selected thread
 
-Route::get('/run-thread/{threadId}/{assistantId}', [AiController::class,'runThread']); // Run Thread
+// Route::get('/create-and-run', [AiController::class,'createAndRunThread'])->name('createAndRun'); // Create Message in selected thread and run that thread
+
+Route::get('/run-thread/{threadId}/{assistantId}', [AiController::class,'runThread'])->name('runThread'); // Run Thread
 Route::get('/thread/{threadId}/run', [AiController::class,'listRuns']); // List all Runs
 Route::get('/submit-run/{threadId}/{runId}', [AiController::class,'submitRun']); // Submit Run

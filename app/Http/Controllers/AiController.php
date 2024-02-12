@@ -9,23 +9,27 @@ use OpenAI;
 
 class AiController extends Controller
 {
+    // public function index()
+    // {
+    //     $yourApiKey = env('OPENAI_API_KEY');
+
+    //     $client = OpenAI::client($yourApiKey);
+
+    //     $result = $client->chat()->create([
+    //         'model' => 'gpt-4',
+    //         'messages' => [
+    //             [
+    //                 'role' => 'user',
+    //                 'content' => 'You are openAI model?'
+    //             ],
+    //         ],
+    //     ]);
+
+    //     echo $result->choices[0]->message->content; // Hello! How can I assist you today?
+    // }
     public function index()
     {
-        $yourApiKey = env('OPENAI_API_KEY');
-
-        $client = OpenAI::client($yourApiKey);
-
-        $result = $client->chat()->create([
-            'model' => 'gpt-4',
-            'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => 'You are openAI model?'
-                ],
-            ],
-        ]);
-
-        echo $result->choices[0]->message->content; // Hello! How can I assist you today?
+        return view("chatbot");
     }
 
     public function createAssistance()
@@ -96,7 +100,13 @@ class AiController extends Controller
 
         $response = $client->threads()->messages()->list($threadId);
 
-        return response()->json($response->toArray());
+        $data = $response->toArray();
+
+        $data['data'] = collect($data['data'])->sortBy('created_at')->values()->all();
+        return view("chatbot", compact('data', 'threadId'));
+
+        // return redirect("chatbot")->with(['data' => $data]);
+        // return view("home", compact($data)); //, ['data'=>$data]);
     }
 
     /**
@@ -111,10 +121,15 @@ class AiController extends Controller
         
         $response = $client->threads()->messages()->create($request->threadId, [
             'role' => 'user',
-            'content' => 'What is the sum of 5 and 7?',
+            'content' => $request->message,
         ]);
 
-        return response()->json($response); // msg_RHhrHijYdqkJXX5zONAMkOQH
+        $message = $response->toArray();
+        return redirect()->route('runThread', [
+            'threadId' => 'thread_28YHDt2qejm6HYNdrxajEiad',
+            'assistantId' => 'asst_t8Yd7DWAghuHJwdDC2iAzb2E',
+        ])->with(['message' => $message]);
+        // return redirect()->route('runThread')->with(['message'=>$message]); // msg_RHhrHijYdqkJXX5zONAMkOQH
     }
 
     /**
@@ -133,7 +148,9 @@ class AiController extends Controller
             ],
         );
 
-        return response()->json($response->toArray()); // run_OhEtOQ77B8RdtxpDZcne9YRe
+        $data = $response->toArray();
+        return redirect()->route('getThread', ['id' => $threadId])->with(['data'=>$data]);
+        // return response()->json($response->toArray()); // run_OhEtOQ77B8RdtxpDZcne9YRe
 
         // Output: 
         // {
