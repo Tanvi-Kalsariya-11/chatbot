@@ -1136,7 +1136,7 @@
         }
 
         .right .direct-chat-img {
-            float: right;
+            float: left;
         }
 
         .direct-chat-warning .right>.direct-chat-text {
@@ -1146,8 +1146,8 @@
         }
 
         .right .direct-chat-text {
-            margin-right: 50px;
-            margin-left: 0;
+            margin-left: 50px;
+            margin-right: 0;
         }
 
         .box-footer {
@@ -1246,7 +1246,7 @@
                                     <div class="direct-chat-msg right">
                                         @if ($message['role'] == 'user' && isset($message['content'][0]['text']['value']))
                                             <div class="direct-chat-info clearfix">
-                                                <span class="direct-chat-name pull-right">User</span>
+                                                    <span class="direct-chat-name pull-left">User</span>
                                                 <!-- <span class="direct-chat-timestamp pull-left">23 Jan 2:05 pm</span> -->
                                             </div>
 
@@ -1255,10 +1255,7 @@
                                                 alt="message user image">
 
                                             <div class="direct-chat-text">
-
-
                                                 <p>{{ $message['content'][0]['text']['value'] }}</p>
-
                                                 {{-- Thank you for your believe in our supports --}}
                                             </div>
                                         @endif
@@ -1267,45 +1264,7 @@
                             @else
                                 <p>Select Thread</p>
                             @endif
-
-
-
-
-                            <!-- <div class="direct-chat-msg">
-                                <div class="direct-chat-info clearfix">
-                                    <span class="direct-chat-name pull-left">Timona Siera</span>
-                                    <span class="direct-chat-timestamp pull-right">23 Jan 5:37 pm</span>
                                 </div>
-
-                                <img class="direct-chat-img"
-                                    src="https://img.icons8.com/color/36/000000/administrator-male.png"
-                                    alt="message user image">
-
-                                <div class="direct-chat-text">
-                                    For what reason would it be advisable for me to think about business content?
-                                </div>
-
-                            </div>
-
-                            <div class="direct-chat-msg right">
-                                <div class="direct-chat-info clearfix">
-                                    <span class="direct-chat-name pull-right">Sarah Bullock</span>
-                                    <span class="direct-chat-timestamp pull-left">23 Jan 6:10 pm</span>
-                                </div>
-
-                                <img class="direct-chat-img"
-                                    src="https://img.icons8.com/office/36/000000/person-female.png"
-                                    alt="message user image">
-
-                                <div class="direct-chat-text">
-                                    I would love to.
-                                </div>
-
-                            </div> -->
-
-
-                        </div>
-
                     </div>
 
                     <div class="box-footer">
@@ -1321,14 +1280,10 @@
                             </div>
                         </form>
                     </div>
-
                     </div>
-
                 </div>
             </div>
-
         </div>
-
     </div>
 
 </body>
