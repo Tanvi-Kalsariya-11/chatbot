@@ -27,9 +27,10 @@ Route::get('/thread', [AiController::class,'createThread']); // Create Thread in
 Route::get('/thread/{id}', [AiController::class,'getThread'])->name('getThread'); // Retrieve thread info | id=threadId
 
 Route::post('/create-message', [AiController::class,'createMessage'])->name('createMessage'); // Create Message in selected thread
+Route::get('/retrieve-message/{threadId}', [AiController::class, 'retrieveMessage']);
 
 // Route::get('/create-and-run', [AiController::class,'createAndRunThread'])->name('createAndRun'); // Create Message in selected thread and run that thread
 
 Route::get('/run-thread/{threadId}/{assistantId}', [AiController::class,'runThread'])->name('runThread'); // Run Thread
-Route::get('/thread/{threadId}/run', [AiController::class,'listRuns']); // List all Runs
+Route::get('/thread/{threadId}/run/{runId}', [AiController::class,'listRuns']); // List all Runs
 Route::get('/submit-run/{threadId}/{runId}', [AiController::class,'submitRun']); // Submit Run

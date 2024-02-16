@@ -9,9 +9,16 @@ use OpenAI;
 
 class AiController extends Controller
 {
+    private $openaiApiKey;
+
+    public function __construct()
+    {
+        $this->openaiApiKey = env('OPENAI_API_KEY');
+    }
+
     // public function index()
     // {
-    //     $yourApiKey = env('OPENAI_API_KEY');
+    //     $yourApiKey = $this->openaiApiKey;
 
     //     $client = OpenAI::client($yourApiKey);
 
@@ -34,7 +41,7 @@ class AiController extends Controller
 
     public function createAssistance()
     {
-        $yourApiKey = env('OPENAI_API_KEY');
+        $yourApiKey = $this->openaiApiKey;
         $client = OpenAI::client($yourApiKey);
 
         $response = $client->assistants()->create([
@@ -64,7 +71,7 @@ class AiController extends Controller
 
     public function listAssistants()
     {
-        $yourApiKey = env('OPENAI_API_KEY');
+        $yourApiKey = $this->openaiApiKey;
         $client = OpenAI::client($yourApiKey);
 
         $response = $client->assistants()->list([
@@ -76,7 +83,7 @@ class AiController extends Controller
 
     public function createThread()
     {
-        $yourApiKey = env('OPENAI_API_KEY');
+        $yourApiKey = $this->openaiApiKey;
         $client = OpenAI::client($yourApiKey);
 
         $response = $client->threads()->create([]);
@@ -95,7 +102,7 @@ class AiController extends Controller
      * Description: Retrieve thread info | id=threadId
      */
     public function getThread($threadId) {
-        $yourApiKey = env('OPENAI_API_KEY');
+        $yourApiKey = $this->openaiApiKey;
         $client = OpenAI::client($yourApiKey);
 
         $response = $client->threads()->messages()->list($threadId);
@@ -113,101 +120,147 @@ class AiController extends Controller
      * Endpoint: /thread/{id}/message
      * Description: Create Message in selected thread
      */
-    public function createMessage(Request $request) {
-        // threadId = thread_28YHDt2qejm6HYNdrxajEiad
-        // dd('test');
-        $yourApiKey = env('OPENAI_API_KEY');
-        $client = OpenAI::client($yourApiKey);
+    // public function createMessage(Request $request) {
+    //     // threadId = thread_28YHDt2qejm6HYNdrxajEiad
+    //     dd($request);
+    //     $yourApiKey = $this->openaiApiKey;
+    //     $client = OpenAI::client($yourApiKey);
         
+    //     $response = $client->threads()->messages()->create($request->threadId, [
+    //         'role' => 'user',
+    //         'content' => $request->message,
+    //     ]);
+
+    //     $message = $response->toArray();
+
+    //     return response()->json(['message'=>$message]);
+    //     // return redirect()->route('runThread', [
+    //     //     'threadId' => $request->threadId,
+    //     //     'assistantId' => 'asst_t8Yd7DWAghuHJwdDC2iAzb2E',
+    //     // ])->with(['message' => $message]);
+    //     // return redirect()->route('runThread')->with(['message'=>$message]); // msg_RHhrHijYdqkJXX5zONAMkOQH
+    // }
+    public function createMessage(Request $request)
+    {
+        // dd($request->message);
+        $yourApiKey = $this->openaiApiKey;
+        $client = OpenAI::client($yourApiKey);
+
+        // Call OpenAI API to create message
         $response = $client->threads()->messages()->create($request->threadId, [
             'role' => 'user',
             'content' => $request->message,
         ]);
 
         $message = $response->toArray();
-        return redirect()->route('runThread', [
-            'threadId' => 'thread_28YHDt2qejm6HYNdrxajEiad',
-            'assistantId' => 'asst_t8Yd7DWAghuHJwdDC2iAzb2E',
-        ])->with(['message' => $message]);
-        // return redirect()->route('runThread')->with(['message'=>$message]); // msg_RHhrHijYdqkJXX5zONAMkOQH
+
+        // Call OpenAI API to run thread
+        $response = $client->threads()->runs()->create(
+            threadId: $request->threadId,
+            parameters: [
+                'assistant_id' => 'asst_t8Yd7DWAghuHJwdDC2iAzb2E',
+            ]
+        );
+
+        $data = $response->toArray();
+
+        // Return JSON response
+        return response()->json(['message' => $message, 'data' => $data]);
+    }
+
+
+    /**
+     * Endpoint: /thread/{threadId}/run
+     * Description: List all Runs
+     */
+    public function listRuns($threadId,$runId) 
+    {
+        $yourApiKey = $this->openaiApiKey;
+        $client = new Client();
+        $url = 'https://api.openai.com/v1/threads/'.$threadId. '/runs/'.$runId;
+
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $yourApiKey,
+                'OpenAI-Beta' => 'assistants=v1',
+                'Content-Type' => 'application/json',
+            ],
+        ]);
+
+        $thread = json_decode($response->getBody(), true);
+
+        return response()->json($thread);
+    }
+    
+    public function retrieveMessage($threadId) {
+
+        $client = new Client();
+
+        $response = $client->get("https://api.openai.com/v1/threads/$threadId/messages", [
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'OpenAI-Beta' => 'assistants=v1',
+                'Authorization' => 'Bearer ' . $this->openaiApiKey,
+            ],
+        ]);
+
+        $data = json_decode($response->getBody(), true);
+
+        return response()->json(['message' => $data]);
     }
 
     /**
      * Endpoint: /run-thread/{threadId}/{assistantId}
      * Description: Run Thread
      */
-    public function runThread($threadId,$assistantId) {
-        // assistantId = asst_t8Yd7DWAghuHJwdDC2iAzb2E
-        $yourApiKey = env('OPENAI_API_KEY');
-        $client = OpenAI::client($yourApiKey);
+    // public function runThread($threadId,$assistantId) {
+    //     // assistantId = asst_t8Yd7DWAghuHJwdDC2iAzb2E
+    //     $yourApiKey = $this->openaiApiKey;
+    //     $client = OpenAI::client($yourApiKey);
         
-        $response = $client->threads()->runs()->create(
-            threadId: $threadId, 
-            parameters: [
-                'assistant_id' => $assistantId,
-            ],
-        );
+    //     $response = $client->threads()->runs()->create(
+    //         threadId: $threadId, 
+    //         parameters: [
+    //             'assistant_id' => $assistantId,
+    //         ],
+    //     );
 
-        $data = $response->toArray();
-        return redirect()->route('getThread', ['id' => $threadId])->with(['data'=>$data]);
-        // return response()->json($response->toArray()); // run_OhEtOQ77B8RdtxpDZcne9YRe
+    //     $data = $response->toArray();
 
-        // Output: 
-        // {
-        //     "id": "run_SkV5fgpRb7H10AnvsSlZ4GQX",
-        //     "object": "thread.run",
-        //     "created_at": 1707469877,
-        //     "assistant_id": "asst_t8Yd7DWAghuHJwdDC2iAzb2E",
-        //     "thread_id": "thread_28YHDt2qejm6HYNdrxajEiad",
-        //     "status": "queued",
-        //     "started_at": null,
-        //     "expires_at": 1707470477,
-        //     "cancelled_at": null,
-        //     "failed_at": null,
-        //     "completed_at": null,
-        //     "last_error": null,
-        //     "model": "gpt-4",
-        //     "instructions": "You are a personal math tutor. When asked a question, write and run Python code to answer the question.",
-        //     "tools": [
-        //         {
-        //             "type": "code_interpreter"
-        //         }
-        //     ],
-        //     "file_ids": [],
-        //     "metadata": [],
-        //     "usage": null
-        // }
-    }
+    //     return response()->json(['data'=>$data]);
+    //     // return redirect()->route('getThread', ['id' => $threadId])->with(['data'=>$data]);
+    //     // return response()->json($response->toArray()); // run_OhEtOQ77B8RdtxpDZcne9YRe
+    // }
 
     /**
      * Endpoint: /submit-run/{threadId}/{runId}
      * Description: Submit Run
      */
-    public function submitRun($threadId,$runId)
-    {
-        $yourApiKey = env('OPENAI_API_KEY');
-
-        $client = OpenAI::client($yourApiKey);
-        $response = $client->threads()->runs()->submitToolOutputs(
-            threadId: $threadId,
-            runId: $runId,
-            parameters: [
-                'tool_outputs' => [],
-            ]
-        );
-
-        return $response->toArray();
-        
-    }
     // public function submitRun($threadId,$runId)
     // {
-    //     $openaiApiKey = env('OPENAI_API_KEY');
+    //     $yourApiKey = $this->openaiApiKey;
+
+    //     $client = OpenAI::client($yourApiKey);
+    //     $response = $client->threads()->runs()->submitToolOutputs(
+    //         threadId: $threadId,
+    //         runId: $runId,
+    //         parameters: [
+    //             'tool_outputs' => [],
+    //         ]
+    //     );
+
+    //     return $response->toArray();
+        
+    // }
+    // public function submitRun($threadId,$runId)
+    // {
+    //     $yourApiKey = $this->openaiApiKey;
     //     $client = new Client();
     //     $url = env('OPENAI_URL').'/threads/'.$threadId.'/runs/'.$runId.'/submit_tool_outputs';
 
     //     $response = $client->post($url, [
     //         'headers' => [
-    //             'Authorization' => 'Bearer ' . $openaiApiKey,
+    //             'Authorization' => 'Bearer ' . $yourApiKey,
     //             'OpenAI-Beta' => 'assistants=v1',
     //             'Content-Type' => 'application/json',
     //         ],
@@ -219,28 +272,5 @@ class AiController extends Controller
     //     $run = json_decode($response->getBody(), true);
 
     //     return response()->json($run);
-    // }
-
-    /**
-     * Endpoint: /thread/{threadId}/run
-     * Description: List all Runs
-     */
-    // public function listRuns($threadId) 
-    // {
-    //     $openaiApiKey = env('OPENAI_API_KEY');
-    //     $client = new Client();
-    //     $url = env('OPENAI_URL').'/threads/'.$threadId. '/runs';
-
-    //     $response = $client->get($url, [
-    //         'headers' => [
-    //             'Authorization' => 'Bearer ' . $openaiApiKey,
-    //             'OpenAI-Beta' => 'assistants=v1',
-    //             'Content-Type' => 'application/json',
-    //         ],
-    //     ]);
-
-    //     $thread = json_decode($response->getBody(), true);
-
-    //     return response()->json($thread);
     // }   
 }
