@@ -7,10 +7,10 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.bundle.min.js" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet" />
+    <link href=" {{ asset('assets/css/bootstrap.min.css') }} " rel="stylesheet" />
+    <link href=" {{ asset('assets/js/bootstrap.bundle.min.js') }} " rel="stylesheet" />
+    <link href=" {{ asset('assets/js/jquery.min.js') }} " rel="stylesheet" />
+    <link href=" {{ asset('assets/css/font-awesome.css') }} " rel="stylesheet" />
 
     <link href="{{ asset('assets/css/chat.css') }}" rel="stylesheet" />
 
@@ -98,7 +98,7 @@
                                 <input type="hidden" name="threadId" value="thread_28YHDt2qejm6HYNdrxajEiad">
                                 <div class="input-group">
                                     <input id="messageInput" type="text" name="message"
-                                        placeholder="Type Message ..." class="form-control">
+                                        placeholder="Type Message ..." class="form-control" autocomplete="off">
                                     <span class="input-group-btn">
                                         <button id="sendMessageBtn" type="button"
                                             class="btn btn-warning btn-flat">Send</button>

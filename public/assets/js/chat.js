@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const typingLoaderBlock = document.getElementById("typingLoaderBlock");
     const chatMessages = document.getElementById("chatMessages");
 
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    messageInput.focus();
+
     function sendMessage() {
         const message = messageInput.value;
 
@@ -33,7 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 // Show typing loader
                 displayTypingLoader(true);
-                
+
                 checkRunStatus(runId,data);
             },
             error: function (error) {
@@ -92,6 +95,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // If showing, append it to the end of the chat
         if (show) {
             chatMessages.appendChild(typingLoaderBlock);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     }
 
