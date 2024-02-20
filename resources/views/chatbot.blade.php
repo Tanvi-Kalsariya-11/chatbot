@@ -12,9 +12,9 @@
     <link href=" {{ asset('assets/js/jquery.min.js') }} " rel="stylesheet" />
     <link href=" {{ asset('assets/css/font-awesome.css') }} " rel="stylesheet" />
 
-    <link href="{{ asset('assets/css/chat.css') }}" rel="stylesheet" />
+    <link href="{{ asset('assets/css/chatbot.css') }}" rel="stylesheet" />
 
-    <title>Document</title>
+    <title>Chatbot</title>
 
     <style></style>
 </head>
@@ -23,7 +23,8 @@
     {{-- <h1>Chatbot View</h1> --}}
 
     <!-- Generate a URL for the getThread route with the id parameter -->
-    <h3><a href="{{ route('getThread', ['id' => 'thread_28YHDt2qejm6HYNdrxajEiad']) }}">Run Thread</a></h3>
+    {{-- <h4><a href="{{ route('getThread', ['id' => 'thread_28YHDt2qejm6HYNdrxajEiad']) }}">Open Thread</a></h4> --}}
+    {{-- <h4><a href=" {{ route('assistant') }} ">Assistant</a></h4> --}}
     <div class="page-content page-container" id="page-content">
         <div class="padding">
             <div class="row container d-flex justify-content-center">
@@ -93,9 +94,9 @@
                         </div>
 
                         <div class="box-footer">
-                            <form id="messageForm" action="{{ route('createMessage') }}" method="post">
+                            <form id="messageForm" action="{{ route('createMessage', ['assistantId'=>$assistantId,'threadId'=>$threadId]) }}" method="post">
                                 @csrf
-                                <input type="hidden" name="threadId" value="thread_28YHDt2qejm6HYNdrxajEiad">
+                                {{-- <input type="hidden" name="threadId" value="thread_28YHDt2qejm6HYNdrxajEiad"> --}}
                                 <div class="input-group">
                                     <input id="messageInput" type="text" name="message"
                                         placeholder="Type Message ..." class="form-control" autocomplete="off">
@@ -113,7 +114,7 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-    <script src="{{ asset('assets/js/chat.js') }}"></script>
+    <script src="{{ asset('assets/js/chatbot.js') }}"></script>
 
 </body>
 

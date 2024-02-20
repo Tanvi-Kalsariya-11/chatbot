@@ -16,37 +16,34 @@ class AiController extends Controller
         $this->openaiApiKey = env('OPENAI_API_KEY');
     }
 
-    // public function index()
-    // {
-    //     $yourApiKey = $this->openaiApiKey;
-
-    //     $client = OpenAI::client($yourApiKey);
-
-    //     $result = $client->chat()->create([
-    //         'model' => 'gpt-4',
-    //         'messages' => [
-    //             [
-    //                 'role' => 'user',
-    //                 'content' => 'You are openAI model?'
-    //             ],
-    //         ],
-    //     ]);
-
-    //     echo $result->choices[0]->message->content; // Hello! How can I assist you today?
-    // }
     public function index()
     {
         return view("chatbot");
     }
 
-    public function createAssistance()
+    public function createAssistance(Request $request)
     {
+        $request->validate([
+            'assistantName' => 'required',
+            'assistantInstruction' => 'required'
+        ]);
+
         $yourApiKey = $this->openaiApiKey;
         $client = OpenAI::client($yourApiKey);
 
+        // $response = $client->assistants()->create([
+        //     'instructions' => 'You are a personal math tutor. When asked a question, write and run Python code to answer the question.',
+        //     'name' => 'New assistance',
+        //     'tools' => [
+        //         [
+        //             'type' => 'code_interpreter',
+        //         ],
+        //     ],
+        //     'model' => 'gpt-4',
+        // ]);
         $response = $client->assistants()->create([
-            'instructions' => 'You are a personal math tutor. When asked a question, write and run Python code to answer the question.',
-            'name' => 'New assistance',
+            'instructions' => $request->assistantInstruction,
+            'name' => $request->assistantName,
             'tools' => [
                 [
                     'type' => 'code_interpreter',
@@ -55,18 +52,8 @@ class AiController extends Controller
             'model' => 'gpt-4',
         ]);
 
-        // $response->id; // 'asst_gxzBkD1wkKEloYqZ410pT5pd'
-        // $response->object; // 'assistant'
-        // $response->createdAt; // 1623936000
-        // $response->name; // 'Math Tutor'
-        // $response->instructions; // 'You are a personal math tutor. When asked a question, write and run Python code to answer the question.'
-        // $response->model; // 'gpt-4'
-        // $response->description; // null
-        // $response->tools[0]->type; // 'code_interpreter'
-        // $response->fileIds; // []
-        // $response->metadata; // []
-
-        return $response->toArray(); // ['id' => 'asst_gxzBkD1wkKEloYqZ410pT5pd', ...]
+        // $assistant = $response->toArray();
+        return redirect()->route('assistant'); // ['id' => 'asst_VAGZ8DjGncGKfLCBojPPJXVU', ...]
     }
 
     public function listAssistants()
@@ -78,30 +65,71 @@ class AiController extends Controller
             'limit' => 10,
         ]);
 
-        return response()->json($response->toArray());
+        $assistant = $response->toArray();
+        // return route('assistant', ['assistant'=> $assistant]);
+        return view('assistant', ['assistants' => $assistant['data']]);
+        // return response()->json($assistant);
     }
 
-    public function createThread()
+    public function retrieveAssistant($assistantId)
+    {
+        $yourApiKey = $this->openaiApiKey;
+        $client = OpenAI::client($yourApiKey);
+
+        $retrieveResponse = $client->assistants()->retrieve($assistantId);
+        $listResponse = $client->assistants()->list([
+            'limit' => 10,
+        ]);
+
+        $assistant = $retrieveResponse->toArray();
+        $assistantsList = $listResponse->toArray()['data'];
+
+        return view('assistant', [
+            'assistant' => $assistant,
+            'assistants' => $assistantsList,
+        ]);
+    }
+
+    public function updateAssistant($assistantId, Request $request) {
+
+        $yourApiKey = $this->openaiApiKey;
+        $client = OpenAI::client($yourApiKey);
+
+        $response = $client->assistants()->modify($assistantId, [
+            'instructions' => $request->assistantInstruction,
+            'name' => $request->assistantName,
+        ]);
+        
+        return redirect()->route('assistant');
+    }
+
+    public function deleteAssistant($assistantId) {
+        $yourApiKey = $this->openaiApiKey;
+        $client = OpenAI::client($yourApiKey);
+
+        $response = $client->assistants()->delete($assistantId);
+
+        // return $response->toArray();
+        return redirect()->route('assistant');
+    }
+
+    public function createThread($assistantId)
     {
         $yourApiKey = $this->openaiApiKey;
         $client = OpenAI::client($yourApiKey);
 
         $response = $client->threads()->create([]);
 
-        // $response->id; // 'thread_tKFLqzRN9n7MnyKKvc1Q7868'
-        // $response->object; // 'thread'
-        // $response->createdAt; // 1623936000
-        // $response->metadata; // []
-        // {"id":"thread_28YHDt2qejm6HYNdrxajEiad","object":"thread","created_at":1707461455,"metadata":[]}
-
-        return $response->toArray();
+        return redirect()->route('getThread', ['assistantId' => $assistantId,'id'=>$response->id]);
+        // return $response->toArray();
     }
 
     /**
      * Endpoint: /thread/{id}
      * Description: Retrieve thread info | id=threadId
      */
-    public function getThread($threadId) {
+    public function getThread($assistantId,$threadId)
+    {
         $yourApiKey = $this->openaiApiKey;
         $client = OpenAI::client($yourApiKey);
 
@@ -110,10 +138,7 @@ class AiController extends Controller
         $data = $response->toArray();
 
         $data['data'] = collect($data['data'])->sortBy('created_at')->values()->all();
-        return view("chatbot", compact('data', 'threadId'));
-
-        // return redirect("chatbot")->with(['data' => $data]);
-        // return view("home", compact($data)); //, ['data'=>$data]);
+        return view("chatbot", compact('data', 'threadId', 'assistantId'));
     }
 
     /**
@@ -125,7 +150,7 @@ class AiController extends Controller
     //     dd($request);
     //     $yourApiKey = $this->openaiApiKey;
     //     $client = OpenAI::client($yourApiKey);
-        
+
     //     $response = $client->threads()->messages()->create($request->threadId, [
     //         'role' => 'user',
     //         'content' => $request->message,
@@ -140,14 +165,13 @@ class AiController extends Controller
     //     // ])->with(['message' => $message]);
     //     // return redirect()->route('runThread')->with(['message'=>$message]); // msg_RHhrHijYdqkJXX5zONAMkOQH
     // }
-    public function createMessage(Request $request)
+    public function createMessage($assistantId,$threadId,Request $request)
     {
-        // dd($request->message);
         $yourApiKey = $this->openaiApiKey;
         $client = OpenAI::client($yourApiKey);
 
         // Call OpenAI API to create message
-        $response = $client->threads()->messages()->create($request->threadId, [
+        $response = $client->threads()->messages()->create($threadId, [
             'role' => 'user',
             'content' => $request->message,
         ]);
@@ -156,9 +180,9 @@ class AiController extends Controller
 
         // Call OpenAI API to run thread
         $response = $client->threads()->runs()->create(
-            threadId: $request->threadId,
+            threadId: $threadId,
             parameters: [
-                'assistant_id' => 'asst_t8Yd7DWAghuHJwdDC2iAzb2E',
+                'assistant_id' => $assistantId,
             ]
         );
 
@@ -173,11 +197,11 @@ class AiController extends Controller
      * Endpoint: /thread/{threadId}/run
      * Description: List all Runs
      */
-    public function listRuns($threadId,$runId) 
+    public function listRuns($threadId, $runId)
     {
         $yourApiKey = $this->openaiApiKey;
         $client = new Client();
-        $url = 'https://api.openai.com/v1/threads/'.$threadId. '/runs/'.$runId;
+        $url = 'https://api.openai.com/v1/threads/' . $threadId . '/runs/' . $runId;
 
         $response = $client->get($url, [
             'headers' => [
@@ -191,8 +215,9 @@ class AiController extends Controller
 
         return response()->json($thread);
     }
-    
-    public function retrieveMessage($threadId) {
+
+    public function retrieveMessage($threadId)
+    {
 
         $client = new Client();
 
@@ -217,7 +242,7 @@ class AiController extends Controller
     //     // assistantId = asst_t8Yd7DWAghuHJwdDC2iAzb2E
     //     $yourApiKey = $this->openaiApiKey;
     //     $client = OpenAI::client($yourApiKey);
-        
+
     //     $response = $client->threads()->runs()->create(
     //         threadId: $threadId, 
     //         parameters: [
@@ -250,7 +275,7 @@ class AiController extends Controller
     //     );
 
     //     return $response->toArray();
-        
+
     // }
     // public function submitRun($threadId,$runId)
     // {

@@ -12,6 +12,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function sendMessage() {
         const message = messageInput.value;
+        const formAction = $('#messageForm').attr('action');
+        const urlParts = formAction.split('/');
+        const threadId = urlParts[urlParts.length - 1];
 
         // Display user message immediately
         displayMessage("User", message, false, true);
@@ -28,7 +31,7 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             data: {
                 message: message,
-                threadId: form.threadId.value,
+                // threadId: form.threadId.value,
             },
             success: function (data) {
                 // Check run status before retrieving last message
@@ -37,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Show typing loader
                 displayTypingLoader(true);
 
-                checkRunStatus(runId,data);
+                checkRunStatus(runId,data,threadId);
             },
             error: function (error) {
                 console.error("Error:", error);
@@ -45,17 +48,17 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function checkRunStatus(runId,data) {
+    function checkRunStatus(runId,data,threadId) {
         $.ajax({
             type: "GET",
-            url: `/thread/${form.threadId.value}/run/${runId}`,
+            url: `/thread/${threadId}/run/${runId}`,
             success: function (runStatus) {
                 if (runStatus && runStatus.completed_at) {
     
                     // Make AJAX request to retrieve last message
                     $.ajax({
                         type: "GET",
-                        url: `/retrieve-message/${form.threadId.value}`,
+                        url: `/retrieve-message/${threadId}`,
                         success: function (responseData) {
                             assistantResponse = responseData.message.data[0].content[0].text.value;
 
@@ -78,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     // If run status is not completed, continue checking
                     // setTimeout(function () {
                         displayTypingLoader(true);
-                        checkRunStatus(runId,data);
+                        checkRunStatus(runId,data,threadId);
                     // }, 500); // Adjust the interval as needed
                 }
             },

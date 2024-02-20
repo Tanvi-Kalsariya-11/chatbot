@@ -14,19 +14,22 @@ use App\Http\Controllers\AiController;
 |
 */
 
-Route::get('/', function () {
-    return view('chatbot');
+Route::get('/assistants', function () {
+    return view('assistant');
 });
 
 // Route::get('/chatbot', [AiController::class, 'index'])->name('chatbot');
 
-Route::get('/assistants', [AiController::class,'createAssistance']); // Create OpenAI Assistant
-Route::get('/list-assistants', [AiController::class,'listAssistants']); // List all created Assistants
+Route::post('/create-assistants', [AiController::class,'createAssistance'])->name('createAssistant'); // Create OpenAI Assistant
+Route::get('/assistants', [AiController::class,'listAssistants'])->name('assistant'); // List all created Assistants
+Route::get('/assistants/{assistantId}', [AiController::class,'retrieveAssistant'])->name('retrieveAssistant'); // Select Assistants
+Route::post('/assistants/{assistantId}', [AiController::class,'updateAssistant'])->name('updateAssistant'); // Update Selected Assistants
+Route::get('/delete-assistants/{assistantId}', [AiController::class,'deleteAssistant'])->name('deleteAssistant'); // Delete selected Assistants
 
-Route::get('/thread', [AiController::class,'createThread']); // Create Thread in Assistant
-Route::get('/thread/{id}', [AiController::class,'getThread'])->name('getThread'); // Retrieve thread info | id=threadId
+Route::get('/thread/{assistantId}', [AiController::class,'createThread'])->name('createThread'); // Create Thread in Assistant
+Route::get('/thread/{assistantId}/{id}', [AiController::class,'getThread'])->name('getThread'); // Retrieve thread info | id=threadId
 
-Route::post('/create-message', [AiController::class,'createMessage'])->name('createMessage'); // Create Message in selected thread
+Route::post('/create-message/{assistantId}/{threadId}', [AiController::class,'createMessage'])->name('createMessage'); // Create Message in selected thread
 Route::get('/retrieve-message/{threadId}', [AiController::class, 'retrieveMessage']);
 
 // Route::get('/create-and-run', [AiController::class,'createAndRunThread'])->name('createAndRun'); // Create Message in selected thread and run that thread
