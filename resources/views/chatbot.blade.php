@@ -51,8 +51,7 @@
                                                     alt="message user image">
 
                                                 <div class="direct-chat-text">
-                                                    {{-- <div id="typingLoader" style="display: none;">Typing...</div> --}}
-                                                    <p>{{ $message['content'][0]['text']['value'] }}</p>
+                                                    <pre>{{ $message['content'][0]['text']['value'] }}</pre>
                                                 </div>
                                             @endif
                                         </div>

@@ -79,10 +79,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
                 } else {
                     // If run status is not completed, continue checking
-                    // setTimeout(function () {
+                    setTimeout(function () {
                         displayTypingLoader(true);
                         checkRunStatus(runId,data,threadId);
-                    // }, 500); // Adjust the interval as needed
+                    }, 1000); // Adjust the interval as needed
                 }
             },
             error: function (error) {
