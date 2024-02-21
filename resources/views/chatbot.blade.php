@@ -32,7 +32,7 @@
 
                     <div class="box box-warning direct-chat direct-chat-warning">
                         <div class="box-header with-border">
-                            <h3 class="box-title">Chat Messages</h3>
+                            <h3 class="box-title">{{$assistantName}}</h3>
                         </div>
 
                         <div class="box-body">
