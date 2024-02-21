@@ -85,8 +85,9 @@
                                         src="https://img.icons8.com/color/36/000000/administrator-male.png"
                                         alt="message user image">
 
-                                    <div class="direct-chat-text">
-                                        <div id="typingLoader">Typing...</div>
+                                    <div class="direct-chat-text bg-loader">
+                                        <pre id="typingLoader" class="loading medium"><span>.</span><span>.</span><span>.</span></pre>
+                                        {{-- <div id="typingLoader">Typing...</div> --}}
                                     </div>
                                 </div>
                             </div>

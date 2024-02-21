@@ -142,7 +142,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                     <img class="direct-chat-img" src="https://img.icons8.com/color/36/000000/administrator-male.png" alt="message user image">
                     <div class="direct-chat-text">
-                        <div id="typingLoader">Typing...</div>
+                        <pre id="typingLoader" class="loading medium"><span>.</span><span>.</span><span>.</span></pre>
                     </div>
                 </div>
                 <p>${content}</p>
