@@ -145,10 +145,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         <pre id="typingLoader" class="loading medium"><span>.</span><span>.</span><span>.</span></pre>
                     </div>
                 </div>
-                <p>${content}</p>
+                <pre>${content}</pre>
             `;
         } else {
-            textContainer.innerHTML = `<p>${content}</p>`;
+            textContainer.innerHTML = `<pre>${content}</pre>`;
         }
     
         messageContainer.appendChild(infoContainer);
