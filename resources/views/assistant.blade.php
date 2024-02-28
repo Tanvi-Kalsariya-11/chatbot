@@ -25,7 +25,7 @@
             <div class="col-md-4 border-right">
                 <form id="assistantForm"
                     action=" {{ isset($assistant) ? route('updateAssistant', ['assistantId' => $assistant['id']]) : route('createAssistant') }} "
-                    method="post">
+                    method="post" enctype="multipart/form-data">
                     {{-- <form id="assistantForm" action=" {{route('createAssistant')}} " method="post"> --}}
                     @csrf
                     <div class="form-group">
@@ -39,6 +39,29 @@
                         <textarea class="form-control" name="assistantInstruction" id="assistantInstruction" rows="5"
                             placeholder="Type Instrutions for Assistant">{{ isset($assistant) ? $assistant['instructions'] : null }}</textarea>
                     </div>
+                    <div class="input-group mb-3">
+                        <div class="custom-file">
+                            <input type="file" class="custom-file-input" id="uploadFile" name="uploadFile"
+                                onchange="updateFileName()">
+                            <label class="custom-file-label" for="inputGroupFile02"
+                                aria-describedby="inputGroupFileAddon02">Choose file</label>
+                        </div>
+                    </div>
+                    <!-- Display existing files for update -->
+                    @if(isset($assistant))
+                    <div class="form-group">
+                        <label for="existingFiles">Attached Files</label>
+                        <ul>
+                            @if (isset($files) && count($files) > 0)
+                                @foreach ($files as $file)
+                                    <li>{{ $file['filename'] }} <span class="float-md-right pr-md-5"><a href="{{route('deleteFile',['assistantId' => $assistant['id'],'fileId'=>$file['id']])}}">x</a></span> </li>
+                                @endforeach
+                            @else
+                                <li>No Files Attached to Assistant!</li>
+                            @endif
+                        </ul>
+                    </div>
+                    @endif
                     {{-- <button type="submit" class="btn btn-warning btn-flat">Save</button> --}}
                     <button type="submit" class="btn btn-{{ isset($assistant) ? 'info' : 'warning' }} btn-flat">
                         {{ isset($assistant) ? 'Update' : 'Save' }}
@@ -63,8 +86,12 @@
                                         <td>{{ $assistant['name'] }}</td>
                                         <td>{{ $assistant['instructions'] }}</td>
                                         <td>
-                                            <a href="{{ route('retrieveAssistant', ['assistantId' => $assistant['id']]) }}"><button class="btn btn-info">Edit</button></a>
-                                            <a href="{{ route('createThread', ['assistantId' => $assistant['id']]) }}"><button class="btn btn-success">Chat</button></a>
+                                            <a href="{{ route('retrieveAssistant', ['assistantId' => $assistant['id']]) }}">
+                                                <button class="btn btn-info">Edit</button>
+                                            </a>
+                                            <a href="{{ route('createThread', ['assistantId' => $assistant['id']]) }}">
+                                                <button class="btn btn-success">Chat</button>
+                                            </a>
                                             {{-- <a href="{{route('deleteAssistant', ['assistantId'=> $assistant['id']])}}"><button class="btn btn-danger">Delete</button></a> --}}
                                         </td>
                                     </tr>
@@ -79,6 +106,13 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        function updateFileName() {
+            var fileName = document.getElementById('uploadFile').files[0].name;
+            console.log(fileName);
+            document.querySelector('.custom-file-label').innerText = fileName;
+        }
+    </script>
 </body>
 
 </html>

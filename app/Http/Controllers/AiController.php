@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use OpenAI;
 
 class AiController extends Controller
@@ -32,26 +34,33 @@ class AiController extends Controller
             'assistantInstruction' => 'required'
         ]);
 
-        // $response = $this->client->assistants()->create([
-        //     'instructions' => 'You are a personal math tutor. When asked a question, write and run Python code to answer the question.',
-        //     'name' => 'New assistance',
-        //     'tools' => [
-        //         [
-        //             'type' => 'code_interpreter',
-        //         ],
-        //     ],
-        //     'model' => 'gpt-4',
-        // ]);
-        $response = $this->client->assistants()->create([
-            'instructions' => $request->assistantInstruction,
-            'name' => $request->assistantName,
-            'tools' => [
-                [
-                    'type' => 'code_interpreter',
+        if ($request->hasFile('uploadFile')) {
+            $assistantFile = $this->uploadFile($request->file('uploadFile'));
+
+            // Create assistant with the attached file
+            $this->client->assistants()->create([
+                'instructions' => $request->assistantInstruction,
+                'name' => $request->assistantName,
+                'tools' => [
+                    [
+                        'type' => 'retrieval',
+                    ],
                 ],
-            ],
-            'model' => 'gpt-4',
-        ]);
+                'model' => 'gpt-4-1106-preview',
+                'file_ids' => [$assistantFile['id']],
+            ]);
+        } else {
+            $this->client->assistants()->create([
+                'instructions' => $request->assistantInstruction,
+                'name' => $request->assistantName,
+                'tools' => [
+                    [
+                        'type' => 'retrieval',
+                    ],
+                ],
+                'model' => 'gpt-4-1106-preview',
+            ]);
+        }
 
         // $assistant = $response->toArray();
         return redirect()->route('assistant'); // ['id' => 'asst_VAGZ8DjGncGKfLCBojPPJXVU', ...]
@@ -59,9 +68,7 @@ class AiController extends Controller
 
     public function listAssistants()
     {
-        $response = $this->client->assistants()->list([
-            'limit' => 10,
-        ]);
+        $response = $this->client->assistants()->list();
 
         $assistant = $response->toArray();
         // return route('assistant', ['assistant'=> $assistant]);
@@ -72,29 +79,90 @@ class AiController extends Controller
     public function retrieveAssistant($assistantId)
     {
         $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
-        $listResponse = $this->client->assistants()->list([
-            'limit' => 10,
-        ]);
-
+        $listResponse = $this->client->assistants()->list();
+        
+        $assistantFile=[];
+        $files = $retrieveResponse->fileIds;
+        foreach ($files as $file) {
+            $retrieveFile = $this->client->files()->retrieve($file);
+            $assistantFile[] = $retrieveFile->toArray();
+        }
+        
         $assistant = $retrieveResponse->toArray();
         $assistantsList = $listResponse->toArray()['data'];
+        // dd($assistantFile);
 
         return view('assistant', [
             'assistant' => $assistant,
             'assistants' => $assistantsList,
+            'files' => $assistantFile,
         ]);
     }
 
-    public function updateAssistant($assistantId, Request $request) {
-        $response = $this->client->assistants()->modify($assistantId, [
-            'instructions' => $request->assistantInstruction,
-            'name' => $request->assistantName,
-        ]);
-        
+    public function updateAssistant($assistantId, Request $request)
+    {
+        $existingAssistantFiles = $this->listAssistantFiles($assistantId);
+
+        if ($request->hasFile('uploadFile')) {
+            $newAssistantFile = $this->uploadFile($request->file('uploadFile'));
+
+            $uploadFiles = array_merge($existingAssistantFiles, [$newAssistantFile['id']]);
+            // Assuming you want to associate the uploaded file with the assistant
+            $response = $this->client->assistants()->modify($assistantId, [
+                'instructions' => $request->assistantInstruction,
+                'name' => $request->assistantName,
+                'file_ids' => $uploadFiles
+            ]);
+
+        } else {
+            // If no file is uploaded, update assistant without file
+            $response = $this->client->assistants()->modify($assistantId, [
+                'instructions' => $request->assistantInstruction,
+                'name' => $request->assistantName,
+            ]);
+
+            // Add logic to handle the API response or errors if needed
+        }
+
         return redirect()->route('assistant');
     }
 
-    public function deleteAssistant($assistantId) {
+    public function listAssistantFiles($assistantId)
+    {
+        $response = $this->client->assistants()->files()->list($assistantId);
+
+        $files = $response->toArray();
+        // Extract file IDs from the response
+        if (isset($files['data']) && !empty($files['data'])) {
+            // Extract all file IDs from the response
+            $fileIds = array_map(function ($file) {
+                return $file['id'];
+            }, $files['data']);
+
+            return $fileIds;
+        }
+
+        return [];
+
+    }
+
+    public function uploadFile($file)
+    {
+        $fileName = $file->getClientOriginalName();
+        $file->storeAs('uploads', $fileName, 'public');
+        $fileContent = Storage::disk('public')->readStream("uploads/{$fileName}");
+
+        $fileResponse = $this->client->files()->upload([
+            'purpose' => 'assistants',
+            'file' => $fileContent,
+        ]);
+
+        $assistantFile = $fileResponse->toArray();
+        return $assistantFile;
+    }
+
+    public function deleteAssistant($assistantId)
+    {
         $response = $this->client->assistants()->delete($assistantId);
 
         // return $response->toArray();
@@ -105,15 +173,14 @@ class AiController extends Controller
     {
         $response = $this->client->threads()->create([]);
 
-        return redirect()->route('getThread', ['assistantId' => $assistantId,'id'=>$response->id]);
-        // return $response->toArray();
+        return redirect()->route('getThread', ['assistantId' => $assistantId, 'id' => $response->id]);
     }
 
     /**
      * Endpoint: /thread/{id}
      * Description: Retrieve thread info | id=threadId
      */
-    public function getThread($assistantId,$threadId)
+    public function getThread($assistantId, $threadId)
     {
         $response = $this->client->threads()->messages()->list($threadId);
         $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
@@ -129,30 +196,15 @@ class AiController extends Controller
      * Endpoint: /thread/{id}/message
      * Description: Create Message in selected thread
      */
-    // public function createMessage(Request $request) {
-    //     // threadId = thread_28YHDt2qejm6HYNdrxajEiad
-    //     dd($request);
-
-    //     $response = $this->client->threads()->messages()->create($request->threadId, [
-    //         'role' => 'user',
-    //         'content' => $request->message,
-    //     ]);
-
-    //     $message = $response->toArray();
-
-    //     return response()->json(['message'=>$message]);
-    //     // return redirect()->route('runThread', [
-    //     //     'threadId' => $request->threadId,
-    //     //     'assistantId' => 'asst_t8Yd7DWAghuHJwdDC2iAzb2E',
-    //     // ])->with(['message' => $message]);
-    //     // return redirect()->route('runThread')->with(['message'=>$message]); // msg_RHhrHijYdqkJXX5zONAMkOQH
-    // }
-    public function createMessage($assistantId,$threadId,Request $request)
+    public function createMessage($assistantId, $threadId, Request $request)
     {
+        $assistantFiles = $this->listAssistantFiles($assistantId);
+        // dd($assistantFiles);
         // Call OpenAI API to create message
         $response = $this->client->threads()->messages()->create($threadId, [
             'role' => 'user',
             'content' => $request->message,
+            'file_ids' => $assistantFiles
         ]);
 
         $message = $response->toArray();
@@ -179,98 +231,74 @@ class AiController extends Controller
     public function listRuns($threadId, $runId)
     {
 
-        $client = new Client();
-        $url = 'https://api.openai.com/v1/threads/' . $threadId . '/runs/' . $runId;
+        // $client = new Client();
+        // $url = 'https://api.openai.com/v1/threads/' . $threadId . '/runs/' . $runId . '/steps';
 
-        $response = $client->get($url, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->openaiApiKey,
-                'OpenAI-Beta' => 'assistants=v1',
-                'Content-Type' => 'application/json',
-            ],
-        ]);
+        // $response = $client->get($url, [
+        //     'headers' => [
+        //         'Authorization' => 'Bearer ' . $this->openaiApiKey,
+        //         'OpenAI-Beta' => 'assistants=v1',
+        //         'Content-Type' => 'application/json',
+        //     ],
+        // ]);
 
-        $thread = json_decode($response->getBody(), true);
+        // $thread = json_decode($response->getBody(), true);
 
+        $response = $this->client->threads()->runs()->retrieve(
+            threadId: $threadId,
+            runId: $runId,
+        );
+        
+        $thread = $response->toArray();
+        
         return response()->json($thread);
     }
 
     public function retrieveMessage($threadId)
     {
 
-        $client = new Client();
+        // $client = new Client();
 
-        $response = $client->get("https://api.openai.com/v1/threads/$threadId/messages", [
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'OpenAI-Beta' => 'assistants=v1',
-                'Authorization' => 'Bearer ' . $this->openaiApiKey,
-            ],
-        ]);
+        // $response = $client->get("https://api.openai.com/v1/threads/$threadId/messages", [
+        //     'headers' => [
+        //         'Content-Type' => 'application/json',
+        //         'OpenAI-Beta' => 'assistants=v1',
+        //         'Authorization' => 'Bearer ' . $this->openaiApiKey,
+        //     ],
+        // ]);
 
-        $data = json_decode($response->getBody(), true);
+        // $data = json_decode($response->getBody(), true);
+        $response = $this->client->threads()->messages()->list($threadId);
+        
+        $data = $response->toArray();
 
         return response()->json(['message' => $data]);
     }
 
-    /**
-     * Endpoint: /run-thread/{threadId}/{assistantId}
-     * Description: Run Thread
-     */
-    // public function runThread($threadId,$assistantId) {
-    //     // assistantId = asst_t8Yd7DWAghuHJwdDC2iAzb2E
+    public function deleteFile($assistantId,$fileId) {
+        $this->client->assistants()->files()->delete(
+            assistantId: $assistantId, 
+            fileId: $fileId
+        );
 
-    //     $response = $this->client->threads()->runs()->create(
-    //         threadId: $threadId, 
-    //         parameters: [
-    //             'assistant_id' => $assistantId,
-    //         ],
-    //     );
+        return redirect()->route('retrieveAssistant', ['assistantId' => $assistantId]);
+    }
 
-    //     $data = $response->toArray();
+    public function getFileData($fileId) {
+        // Get the content of the OpenAI file with ID "file-abc123"
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $this->openaiApiKey,
+        ])->get("https://api.openai.com/v1/files/$fileId/content");
 
-    //     return response()->json(['data'=>$data]);
-    //     // return redirect()->route('getThread', ['id' => $threadId])->with(['data'=>$data]);
-    //     // return response()->json($response->toArray()); // run_OhEtOQ77B8RdtxpDZcne9YRe
-    // }
+        // Extract the binary data from the Response object
+        $imageData = $response->body();
 
-    /**
-     * Endpoint: /submit-run/{threadId}/{runId}
-     * Description: Submit Run
-     */
-    // public function submitRun($threadId,$runId)
-    // {
+        // Save the binary data to a specific location (e.g., storage/app/public/my-image.png)
+        Storage::put("public/uploads/$fileId.png", $imageData);
 
-    //     $response = $this->client->threads()->runs()->submitToolOutputs(
-    //         threadId: $threadId,
-    //         runId: $runId,
-    //         parameters: [
-    //             'tool_outputs' => [],
-    //         ]
-    //     );
-
-    //     return $response->toArray();
-
-    // }
-    // public function submitRun($threadId,$runId)
-    // {
-    //     
-    //     $client = new Client();
-    //     $url = env('OPENAI_URL').'/threads/'.$threadId.'/runs/'.$runId.'/submit_tool_outputs';
-
-    //     $response = $this->client->post($url, [
-    //         'headers' => [
-    //             'Authorization' => 'Bearer ' . $yourApiKey,
-    //             'OpenAI-Beta' => 'assistants=v1',
-    //             'Content-Type' => 'application/json',
-    //         ],
-    //         'json' => [
-    //             'tool_outputs' => [],
-    //         ]
-    //     ]);
-
-    //     $run = json_decode($response->getBody(), true);
-
-    //     return response()->json($run);
-    // }   
+        // You can now use the saved image path as needed
+        $imagePath = Storage::url("public/uploads/$fileId.png");
+        // dd($imagePath);
+        return $imagePath;
+    }
 }
