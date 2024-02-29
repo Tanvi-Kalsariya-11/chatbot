@@ -39,7 +39,7 @@
 
                             <div class="direct-chat-messages" id="chatMessages">
                                 @if (isset($data))
-                                    @foreach ($data['data'] as $message)
+                                    @foreach ($data as $message)
                                         <div class="direct-chat-msg">
                                             @if ($message['role'] == 'assistant' && isset($message['content'][0]['text']['value']))
                                                 <div class="direct-chat-info clearfix">

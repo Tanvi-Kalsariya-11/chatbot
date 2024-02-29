@@ -89,7 +89,7 @@
                                             <a href="{{ route('retrieveAssistant', ['assistantId' => $assistant['id']]) }}">
                                                 <button class="btn btn-info">Edit</button>
                                             </a>
-                                            <a href="{{ route('createThread', ['assistantId' => $assistant['id']]) }}">
+                                            <a href="{{ route('startChat', ['assistantId' => $assistant['id']]) }}">
                                                 <button class="btn btn-success">Chat</button>
                                             </a>
                                             {{-- <a href="{{route('deleteAssistant', ['assistantId'=> $assistant['id']])}}"><button class="btn btn-danger">Delete</button></a> --}}

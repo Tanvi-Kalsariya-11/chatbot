@@ -28,6 +28,7 @@ Route::post('/assistants/{assistantId}', [AiController::class,'updateAssistant']
 Route::get('/delete-assistants/{assistantId}', [AiController::class,'deleteAssistant'])->name('deleteAssistant'); // Delete selected Assistants
 
 // Thread
+Route::get('start-chat/{assistantId}', [AiController::class,'startChat'])->name('startChat');
 Route::get('/thread/{assistantId}', [AiController::class,'createThread'])->name('createThread'); // Create Thread in Assistant
 Route::get('/thread/{assistantId}/{id}', [AiController::class,'getThread'])->name('getThread'); // Retrieve thread info | id=threadId
 // Route::get('/create-run-thread/{assistantId}', [AiController::class,'createAndRunThread'])->name('createAndRunThread'); // Create thread and run in single request

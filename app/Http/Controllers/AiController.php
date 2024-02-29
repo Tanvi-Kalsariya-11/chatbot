@@ -80,14 +80,14 @@ class AiController extends Controller
     {
         $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
         $listResponse = $this->client->assistants()->list();
-        
-        $assistantFile=[];
+
+        $assistantFile = [];
         $files = $retrieveResponse->fileIds;
         foreach ($files as $file) {
             $retrieveFile = $this->client->files()->retrieve($file);
             $assistantFile[] = $retrieveFile->toArray();
         }
-        
+
         $assistant = $retrieveResponse->toArray();
         $assistantsList = $listResponse->toArray()['data'];
         // dd($assistantFile);
@@ -169,12 +169,63 @@ class AiController extends Controller
         return redirect()->route('assistant');
     }
 
-    public function createThread($assistantId)
-    {
-        $response = $this->client->threads()->create([]);
+    // public function createThread($assistantId)
+    // {
+    //     $response = $this->client->threads()->create([]);
 
-        return redirect()->route('getThread', ['assistantId' => $assistantId, 'id' => $response->id]);
+    //     return redirect()->route('getThread', ['assistantId' => $assistantId, 'id' => $response->id]);
+    // }
+
+    
+    public function createAndRunThread($assistantId)
+    {
+        $response = $this->client->threads()->createAndRun([
+            'assistant_id' => $assistantId,
+            'thread' => [
+                'messages' =>
+                    [
+                        [
+                            'role' => 'user',
+                            'content' => 'Hello!',
+                        ],
+                    ],
+            ],
+        ],);
+
+        return $response;
     }
+
+    private function loadAnswer($threadRun)
+    {
+        while (in_array($threadRun->status, ['queued', 'in_progress'])) {
+            $threadRun = $this->client->threads()->runs()->retrieve(
+                threadId: $threadRun->threadId,
+                runId: $threadRun->id,
+            );
+        }
+
+        if ($threadRun->status !== 'completed') {
+            $this->error = 'Request failed, please try again';
+        }
+
+        $messageList = $this->client->threads()->messages()->list(
+            threadId: $threadRun->threadId,
+        );
+        
+        $answer = $messageList->data[0]->content[0]->text->value;
+
+        return $messageList;
+    }
+
+    public function startChat($assistantId) {
+        $threadRun = $this->createAndRunThread($assistantId);
+
+        $data = $this->loadAnswer($threadRun);
+        $threadId = $data->data[0]->threadId;
+
+        return redirect()->route('getThread', ['assistantId' => $assistantId, 'id' => $threadId]);
+    }
+
 
     /**
      * Endpoint: /thread/{id}
@@ -185,10 +236,13 @@ class AiController extends Controller
         $response = $this->client->threads()->messages()->list($threadId);
         $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
 
-        $data = $response->toArray();
+        $messageList = $response->toArray();
         $assistantName = $retrieveResponse->name;
 
-        $data['data'] = collect($data['data'])->sortBy('created_at')->values()->all();
+        $sortedMessages = collect($messageList['data'])->sortBy('created_at')->values()->all();
+        $data = array_slice($sortedMessages, 1);
+        
+        // $data['data'] = collect($data['data'])->sortBy('created_at')->values()->all();
         return view("chatbot", compact('data', 'threadId', 'assistantId', 'assistantName'));
     }
 
@@ -199,7 +253,6 @@ class AiController extends Controller
     public function createMessage($assistantId, $threadId, Request $request)
     {
         $assistantFiles = $this->listAssistantFiles($assistantId);
-        // dd($assistantFiles);
         // Call OpenAI API to create message
         $response = $this->client->threads()->messages()->create($threadId, [
             'role' => 'user',
@@ -248,9 +301,9 @@ class AiController extends Controller
             threadId: $threadId,
             runId: $runId,
         );
-        
+
         $thread = $response->toArray();
-        
+
         return response()->json($thread);
     }
 
@@ -269,36 +322,19 @@ class AiController extends Controller
 
         // $data = json_decode($response->getBody(), true);
         $response = $this->client->threads()->messages()->list($threadId);
-        
+
         $data = $response->toArray();
 
         return response()->json(['message' => $data]);
     }
 
-    public function deleteFile($assistantId,$fileId) {
+    public function deleteFile($assistantId, $fileId)
+    {
         $this->client->assistants()->files()->delete(
-            assistantId: $assistantId, 
+            assistantId: $assistantId,
             fileId: $fileId
         );
 
         return redirect()->route('retrieveAssistant', ['assistantId' => $assistantId]);
-    }
-
-    public function getFileData($fileId) {
-        // Get the content of the OpenAI file with ID "file-abc123"
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->openaiApiKey,
-        ])->get("https://api.openai.com/v1/files/$fileId/content");
-
-        // Extract the binary data from the Response object
-        $imageData = $response->body();
-
-        // Save the binary data to a specific location (e.g., storage/app/public/my-image.png)
-        Storage::put("public/uploads/$fileId.png", $imageData);
-
-        // You can now use the saved image path as needed
-        $imagePath = Storage::url("public/uploads/$fileId.png");
-        // dd($imagePath);
-        return $imagePath;
     }
 }
