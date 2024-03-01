@@ -14,24 +14,25 @@ use App\Http\Controllers\AiController;
 |
 */
 
-Route::get('/assistants', function () {
+Route::get('/', function () {
     return view('assistant');
 });
 
 // Route::get('/chatbot', [AiController::class, 'index'])->name('chatbot');
 
 // Assistant
+Route::get('/', [AiController::class,'listAssistants'])->name('assistant'); // List all created Assistants
 Route::post('/create-assistants', [AiController::class,'createAssistance'])->name('createAssistant'); // Create OpenAI Assistant
-Route::get('/assistants', [AiController::class,'listAssistants'])->name('assistant'); // List all created Assistants
-Route::get('/assistants/{assistantId}', [AiController::class,'retrieveAssistant'])->name('retrieveAssistant'); // Select Assistants
-Route::post('/assistants/{assistantId}', [AiController::class,'updateAssistant'])->name('updateAssistant'); // Update Selected Assistants
+Route::get('/assistant/{assistantId}', [AiController::class,'retrieveAssistant'])->name('retrieveAssistant'); // Select Assistants
+Route::post('/assistant/{assistantId}', [AiController::class,'updateAssistant'])->name('updateAssistant'); // Update Selected Assistants
 Route::get('/delete-assistants/{assistantId}', [AiController::class,'deleteAssistant'])->name('deleteAssistant'); // Delete selected Assistants
 
 // Thread
-Route::get('start-chat/{assistantId}', [AiController::class,'startChat'])->name('startChat');
-Route::get('/thread/{assistantId}', [AiController::class,'createThread'])->name('createThread'); // Create Thread in Assistant
+Route::get('start-chat/{assistantId}', [AiController::class,'startChat'])->name('startChat'); // Start new chat
+Route::get('thread/{assistantId}', [AiController::class,'getLastThread'])->name('getLastThread'); // List all threads of an Assistant
+// Route::get('/thread/{assistantId}', [AiController::class,'createThread'])->name('createThread'); // Create Thread in Assistant
 Route::get('/thread/{assistantId}/{id}', [AiController::class,'getThread'])->name('getThread'); // Retrieve thread info | id=threadId
-// Route::get('/create-run-thread/{assistantId}', [AiController::class,'createAndRunThread'])->name('createAndRunThread'); // Create thread and run in single request
+Route::get('delete-thread/{assistantId}/{threadId}', [AiController::class,'deleteThread'])->name('deleteThread');
 
 // Messages
 Route::post('/create-message/{assistantId}/{threadId}', [AiController::class,'createMessage'])->name('createMessage'); // Create Message in selected thread

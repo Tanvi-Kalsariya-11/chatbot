@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Thread;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -176,6 +177,17 @@ class AiController extends Controller
     //     return redirect()->route('getThread', ['assistantId' => $assistantId, 'id' => $response->id]);
     // }
 
+    public function getLastThread($assistantId) {
+        $thread = Thread::where('assistant_id', $assistantId)
+            ->orderBy('created_at', 'desc')
+            ->value('thread_id');
+
+        if ($thread) {
+            return redirect()->route('getThread', ['assistantId' => $assistantId, 'id' => $thread]);
+        } else {
+            return redirect()->route('startChat', ['assistantId' => $assistantId]);
+        }
+    }
     
     public function createAndRunThread($assistantId)
     {
@@ -192,6 +204,11 @@ class AiController extends Controller
             ],
         ],);
 
+        Thread::create([
+            'thread_id' => $response->threadId,
+            'assistant_id' => $assistantId
+        ]);
+
         return $response;
     }
 
@@ -202,6 +219,7 @@ class AiController extends Controller
                 threadId: $threadRun->threadId,
                 runId: $threadRun->id,
             );
+            sleep(1);
         }
 
         if ($threadRun->status !== 'completed') {
@@ -233,19 +251,34 @@ class AiController extends Controller
      */
     public function getThread($assistantId, $threadId)
     {
+        // get assistant response
         $response = $this->client->threads()->messages()->list($threadId);
-        $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
-
         $messageList = $response->toArray();
+        
+        // retrieve assistant 
+        $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
         $assistantName = $retrieveResponse->name;
 
+        // order messages and skip first message
         $sortedMessages = collect($messageList['data'])->sortBy('created_at')->values()->all();
         $data = array_slice($sortedMessages, 1);
         
+        // Get thread list of an assistant
+        $threads = Thread::where('assistant_id', $assistantId)->orderBy('created_at','desc')->get();
+
         // $data['data'] = collect($data['data'])->sortBy('created_at')->values()->all();
-        return view("chatbot", compact('data', 'threadId', 'assistantId', 'assistantName'));
+        return view("chatbot", compact('data', 'threadId', 'assistantId', 'assistantName', 'threads'));
     }
 
+    public function deleteThread($assistantId,$threadId) {
+        // delete thread from database
+        Thread::where('thread_id', $threadId)->delete();
+        
+        // delete thread from assistant
+        $this->client->threads()->delete($threadId);
+
+        return redirect()->route('getLastThread', ['assistantId'=> $assistantId]);
+    }
     /**
      * Endpoint: /thread/{id}/message
      * Description: Create Message in selected thread
@@ -253,7 +286,7 @@ class AiController extends Controller
     public function createMessage($assistantId, $threadId, Request $request)
     {
         $assistantFiles = $this->listAssistantFiles($assistantId);
-        // Call OpenAI API to create message
+
         $response = $this->client->threads()->messages()->create($threadId, [
             'role' => 'user',
             'content' => $request->message,
@@ -272,7 +305,6 @@ class AiController extends Controller
 
         $data = $response->toArray();
 
-        // Return JSON response
         return response()->json(['message' => $message, 'data' => $data]);
     }
 

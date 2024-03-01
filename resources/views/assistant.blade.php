@@ -69,8 +69,13 @@
                 </form>
             </div>
             <div class="col-md-8">
+                <div class="row align-items-center">
+                    <h2 class="col-md-9">List of Assistants</h2>
+                    @if(isset($assistant))
+                        <span class="col-md-3"><a href="{{route('assistant')}}"><button class="btn btn-success">Add assistant</button></a></span>
+                    @endif
+                </div>
                 @if (isset($assistants))
-                    <h2>List of Assistants</h2>
                     <div>
                         <table class="table table-hover">
                             <thead class="text-center">
@@ -89,7 +94,7 @@
                                             <a href="{{ route('retrieveAssistant', ['assistantId' => $assistant['id']]) }}">
                                                 <button class="btn btn-info">Edit</button>
                                             </a>
-                                            <a href="{{ route('startChat', ['assistantId' => $assistant['id']]) }}">
+                                            <a href="{{ route('getLastThread', ['assistantId' => $assistant['id']]) }}">
                                                 <button class="btn btn-success">Chat</button>
                                             </a>
                                             {{-- <a href="{{route('deleteAssistant', ['assistantId'=> $assistant['id']])}}"><button class="btn btn-danger">Delete</button></a> --}}
