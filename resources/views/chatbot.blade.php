@@ -32,7 +32,7 @@
         <div class="row">
             <div class="col-md-3 list-group">
                 <a href="{{route('assistant')}}" class="list-group-item list-group-item-action list-group-item-info fs-5">
-                    Add New Assistant
+                    Assistant List
                 </a>
                 @if (isset($threads))
                     @foreach ($threads as $thread)
