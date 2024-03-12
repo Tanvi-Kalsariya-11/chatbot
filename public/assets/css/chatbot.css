@@ -131,9 +131,9 @@ select {
 [type=submit],
 button {
     -webkit-appearance: button;
-    background-color: transparent;
     background-image: none
 }
+/* background-color: transparent; */
 
 :-moz-focusring {
     outline: auto
@@ -1236,4 +1236,15 @@ body {
     100% {
         opacity: .2;
     }
+}
+
+/* Mention dropdown */
+
+.mention-dropdown{
+    width: 250px;
+    border: 1px solid #e5e5e5;
+}
+
+.mention-dropdown .dropdown-item {
+    cursor: pointer;
 }

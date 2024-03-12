@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Assistants;
 use App\Models\Thread;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use OpenAI;
@@ -35,36 +37,43 @@ class AiController extends Controller
             'assistantInstruction' => 'required'
         ]);
 
+        $assistantFileId = null;
+
         if ($request->hasFile('uploadFile')) {
             $assistantFile = $this->uploadFile($request->file('uploadFile'));
-
-            // Create assistant with the attached file
-            $this->client->assistants()->create([
-                'instructions' => $request->assistantInstruction,
-                'name' => $request->assistantName,
-                'tools' => [
-                    [
-                        'type' => 'retrieval',
-                    ],
-                ],
-                'model' => 'gpt-4-1106-preview',
-                'file_ids' => [$assistantFile['id']],
-            ]);
-        } else {
-            $this->client->assistants()->create([
-                'instructions' => $request->assistantInstruction,
-                'name' => $request->assistantName,
-                'tools' => [
-                    [
-                        'type' => 'retrieval',
-                    ],
-                ],
-                'model' => 'gpt-4-1106-preview',
-            ]);
+            $assistantFileId = $assistantFile['id'];
         }
 
+            // Create assistant with the attached file
+            $assistant = $this->client->assistants()->create([
+                'instructions' => $request->assistantInstruction,
+                'name' => $request->assistantName,
+                'tools' => [
+                    [
+                        'type' => 'retrieval',
+                    ],
+                ],
+                'model' => 'gpt-4-1106-preview',
+                'file_ids' => $assistantFileId ? [$assistantFileId] : [],
+            ]);
+            // $assistant = $this->client->assistants()->create([
+            //     'instructions' => $request->assistantInstruction,
+            //     'name' => $request->assistantName,
+            //     'tools' => [
+            //         [
+            //             'type' => 'retrieval',
+            //         ],
+            //     ],
+            //     'model' => 'gpt-4-1106-preview',
+            // ]);
+            // error_log($assistant->id);
+            Assistants::create([
+                'assistant_id' => $assistant->id,
+                'user_id' => Auth::user()->id
+            ]);
+
         // $assistant = $response->toArray();
-        return redirect()->route('assistant'); // ['id' => 'asst_VAGZ8DjGncGKfLCBojPPJXVU', ...]
+        return redirect()->route('listUserAssistants'); // ['id' => 'asst_VAGZ8DjGncGKfLCBojPPJXVU', ...]
     }
 
     public function listAssistants()
@@ -77,21 +86,62 @@ class AiController extends Controller
         // return response()->json($assistant);
     }
 
+    public function listUserAssistants()
+    {
+        if(Auth::check())
+        {
+            $user = Auth::user();
+            $userAssistants = Assistants::where('user_id', $user->id)->get();
+
+            $assistant = [];
+
+            foreach ($userAssistants as $assistants) {
+                $response = $this->client->assistants()->retrieve($assistants->assistant_id);
+
+                $assistantDetails = $response->toArray();
+                $assistant[] = $assistantDetails;
+            }
+
+            return view('assistant', ['assistants' => $assistant]);
+        }
+        
+        return redirect()->route('login')
+            ->withErrors([
+            'email' => 'Please login to access the Assistants.',
+        ])->onlyInput('email');
+    }
+
     public function retrieveAssistant($assistantId)
     {
         $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
-        $listResponse = $this->client->assistants()->list();
-
+        
         $assistantFile = [];
         $files = $retrieveResponse->fileIds;
         foreach ($files as $file) {
             $retrieveFile = $this->client->files()->retrieve($file);
             $assistantFile[] = $retrieveFile->toArray();
         }
-
+        
         $assistant = $retrieveResponse->toArray();
-        $assistantsList = $listResponse->toArray()['data'];
-        // dd($assistantFile);
+
+        $assistantsList = [];
+        if(Auth::check())
+        {
+            $user = Auth::user();
+            $userAssistants = Assistants::where('user_id', $user->id)->get();
+
+            // $assistant = [];
+
+            foreach ($userAssistants as $assistants) {
+                $response = $this->client->assistants()->retrieve($assistants->assistant_id);
+
+                $assistantDetails = $response->toArray();
+                $assistantsList[] = $assistantDetails;
+            }
+        }
+        // $listResponse = $this->client->assistants()->list();
+        // $assistantsList = $listResponse->toArray()['data'];
+        // dd($assistantsList);
 
         return view('assistant', [
             'assistant' => $assistant,
@@ -104,28 +154,31 @@ class AiController extends Controller
     {
         $existingAssistantFiles = $this->listAssistantFiles($assistantId);
 
+        $uploadFiles = null;
+
         if ($request->hasFile('uploadFile')) {
             $newAssistantFile = $this->uploadFile($request->file('uploadFile'));
 
             $uploadFiles = array_merge($existingAssistantFiles, [$newAssistantFile['id']]);
             // Assuming you want to associate the uploaded file with the assistant
-            $response = $this->client->assistants()->modify($assistantId, [
-                'instructions' => $request->assistantInstruction,
-                'name' => $request->assistantName,
-                'file_ids' => $uploadFiles
-            ]);
+        } 
 
-        } else {
-            // If no file is uploaded, update assistant without file
-            $response = $this->client->assistants()->modify($assistantId, [
-                'instructions' => $request->assistantInstruction,
-                'name' => $request->assistantName,
-            ]);
+        $response = $this->client->assistants()->modify($assistantId, [
+            'instructions' => $request->assistantInstruction,
+            'name' => $request->assistantName,
+            'file_ids' => $uploadFiles ?? []
+        ]);
+        // else {
+        //     // If no file is uploaded, update assistant without file
+        //     $response = $this->client->assistants()->modify($assistantId, [
+        //         'instructions' => $request->assistantInstruction,
+        //         'name' => $request->assistantName,
+        //     ]);
 
-            // Add logic to handle the API response or errors if needed
-        }
+        //     // Add logic to handle the API response or errors if needed
+        // }
 
-        return redirect()->route('assistant');
+        return redirect()->route('listUserAssistants');
     }
 
     public function listAssistantFiles($assistantId)
@@ -164,10 +217,11 @@ class AiController extends Controller
 
     public function deleteAssistant($assistantId)
     {
+        Assistants::where('assistant_id', $assistantId)->where('user_id', Auth::user()->id)->delete();
         $response = $this->client->assistants()->delete($assistantId);
 
         // return $response->toArray();
-        return redirect()->route('assistant');
+        return redirect()->route('user-assistant');
     }
 
     // public function createThread($assistantId)

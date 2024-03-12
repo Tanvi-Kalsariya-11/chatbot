@@ -1,27 +1,30 @@
-<!DOCTYPE html>
+{{-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge"> --}}
+    @extends('layout')
 
-    <link href=" {{ asset('assets/css/bootstrap.min.css') }} " rel="stylesheet" />
+    {{-- <link href=" {{ asset('assets/css/bootstrap.min.css') }} " rel="stylesheet" />
     <link href=" {{ asset('assets/js/bootstrap.bundle.min.js') }} " rel="stylesheet" />
     <link href=" {{ asset('assets/js/jquery.min.js') }} " rel="stylesheet" />
-    <link href=" {{ asset('assets/css/font-awesome.css') }} " rel="stylesheet" />
-
-    <link href="#" rel="stylesheet" />
+    <link href=" {{ asset('assets/css/font-awesome.css') }} " rel="stylesheet" /> --}}
+    
+    {{-- <link href="#" rel="stylesheet" /> --}}
     <title>Assistant</title>
-
-    <style></style>
-</head>
-
-<body>
-
+    
+    {{-- <style></style>
+    </head>
+    
+    <body> --}}
+        @section('content')
+        
     <div class="page-content page-container container-fluid" id="page-content">
         {{-- <div class="row container d-flex justify-content-center"> --}}
         <div class="row">
+            {{-- {{$assistant['id']}} --}}
             <div class="col-md-4 border-right">
                 <form id="assistantForm"
                     action=" {{ isset($assistant) ? route('updateAssistant', ['assistantId' => $assistant['id']]) : route('createAssistant') }} "
@@ -72,45 +75,56 @@
                 <div class="row align-items-center">
                     <h2 class="col-md-9">List of Assistants</h2>
                     @if(isset($assistant))
-                        <span class="col-md-3"><a href="{{route('assistant')}}"><button class="btn btn-success">Add assistant</button></a></span>
+                        <span class="col-md-3"><a href="{{route('listUserAssistants')}}"><button class="btn btn-success">Add assistant</button></a></span>
                     @endif
                 </div>
-                @if (isset($assistants))
-                    <div>
-                        <table class="table table-hover">
-                            <thead class="text-center">
-                                <tr>
-                                    <th scope="col" class="col-md-3">Assistant Name</th>
-                                    <th scope="col" class="col-md-6">Instructions</th>
-                                    <th scope="col">Action</th>
-                                </tr>
-                            </thead>
-                            @foreach ($assistants as $assistant)
+                <div>
+                    <table class="table table-hover">
+                        <thead class="text-center">
+                            <tr>
+                                <th scope="col" class="col-md-3">Assistant Name</th>
+                                <th scope="col" class="col-md-6">Instructions</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        @if (Auth::check())
+                            @if (isset($assistants) && count($assistants) > 0)
+                                @foreach ($assistants as $assistant)
+                                    <tbody>
+                                        <tr>
+                                            <td>{{ $assistant['name'] }}</td>
+                                            <td>{{ $assistant['instructions'] }}</td>
+                                            <td>
+                                                <a href="{{ route('retrieveAssistant', ['assistantId' => $assistant['id']]) }}">
+                                                    <button class="btn btn-info">Edit</button>
+                                                </a>
+                                                <a href="{{ route('getLastThread', ['assistantId' => $assistant['id']]) }}">
+                                                    <button class="btn btn-success">Chat</button>
+                                                </a>
+                                                {{-- <a href="{{route('deleteAssistant', ['assistantId'=> $assistant['id']])}}"><button class="btn btn-danger">Delete</button></a> --}}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                @endforeach
+                            @else
                                 <tbody>
                                     <tr>
-                                        <td>{{ $assistant['name'] }}</td>
-                                        <td>{{ $assistant['instructions'] }}</td>
-                                        <td>
-                                            <a href="{{ route('retrieveAssistant', ['assistantId' => $assistant['id']]) }}">
-                                                <button class="btn btn-info">Edit</button>
-                                            </a>
-                                            <a href="{{ route('getLastThread', ['assistantId' => $assistant['id']]) }}">
-                                                <button class="btn btn-success">Chat</button>
-                                            </a>
-                                            {{-- <a href="{{route('deleteAssistant', ['assistantId'=> $assistant['id']])}}"><button class="btn btn-danger">Delete</button></a> --}}
-                                        </td>
+                                        <td></td>
+                                        <td class="text-center">No Assistants Found!</td>
+                                        <td></td>
                                     </tr>
                                 </tbody>
-                            @endforeach
-                        </table>
-                    </div>
-                @endif
+                            @endif
+                        @endif
+                    </table>
+                </div>
             </div>
         </div>
         {{-- </div> --}}
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    @endsection
+    {{-- <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script> --}}
     <script>
         function updateFileName() {
             var fileName = document.getElementById('uploadFile').files[0].name;
@@ -118,6 +132,6 @@
             document.querySelector('.custom-file-label').innerText = fileName;
         }
     </script>
-</body>
+{{-- </body>
 
-</html>
+</html> --}}

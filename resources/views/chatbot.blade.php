@@ -1,38 +1,40 @@
-<!DOCTYPE html>
+{{-- <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href=" {{ asset('assets/css/bootstrap.min.css') }} " rel="stylesheet" />
     <link href=" {{ asset('assets/js/bootstrap.bundle.min.js') }} " rel="stylesheet" />
     <link href=" {{ asset('assets/js/jquery.min.js') }} " rel="stylesheet" />
-    <link href=" {{ asset('assets/css/font-awesome.css') }} " rel="stylesheet" />
-
-    <link href="{{ asset('assets/css/chatbot.css') }}" rel="stylesheet" />
-
+    <link href=" {{ asset('assets/css/font-awesome.css') }} " rel="stylesheet" /> --}}
+    
+    @extends('layout')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Chatbot</title>
-
-    <style></style>
-</head>
-
-<body>
+    
+    
+    {{-- <style></style>
+    </head>
+    
+    <body> --}}
+        @section('content')
+        <link href="{{ asset('assets/css/chatbot.css') }}" rel="stylesheet" />
     {{-- <h1>Chatbot View</h1> --}}
 
     <!-- Generate a URL for the getThread route with the id parameter -->
     {{-- <h4><a href="{{ route('getThread', ['id' => 'thread_28YHDt2qejm6HYNdrxajEiad']) }}">Open Thread</a></h4> --}}
     {{-- <h4><a href=" {{ route('assistant') }} ">Assistant</a></h4> --}}
-    <div class="page-content page-container container-fluid" id="page-content">
+    <div class="page-content page-container" id="page-content">
         <div class="row">
             <div class="col-md-3 list-group">
-                <a href="{{route('assistant')}}" class="list-group-item list-group-item-action list-group-item-info fs-5">
-                    Assistant List
+                <a href="{{route('listUserAssistants')}}" class="list-group-item list-group-item-action list-group-item-info fs-5">
+                    Back to Assistant List
                 </a>
                 @if (isset($threads))
                     @foreach ($threads as $thread)
@@ -139,12 +141,13 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
+    {{-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
         integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous">
     </script>
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script> --}}
     <script src="{{ asset('assets/js/chatbot.js') }}"></script>
 
-</body>
+{{-- </body>
 
-</html>
+</html> --}}
+@endsection
