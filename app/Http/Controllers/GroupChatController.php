@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\groupChatWebSocket;
+use App\Events\NewGroupMessage;
 use App\Http\Controllers\Controller;
 use App\Models\Assistants;
 use App\Models\Group;
@@ -126,13 +128,12 @@ class GroupChatController extends Controller
     }
 
 
-    public function retrieveGroupChat($groupId, $timestamp)
+    public function retrieveGroupChat($groupId)
     {
         // Retrieve new messages since lastMessageId for the specified group
         $group = Group::findOrFail($groupId);
 
         $messages = Messages::where('group_id', $groupId)
-            ->where('created_at', '>', Carbon::createFromTimestamp($timestamp))
             ->orderBy('created_at')
             ->get();
 
@@ -156,31 +157,68 @@ class GroupChatController extends Controller
             'message' => 'required'
         ]);
 
-        $user = Auth::user()->id;
+        // $user = Auth::user()->id;
         $isAssistantMessage = preg_match('/@ai|@AI|@Ai/', $request->message);
         $group = Group::findOrFail($groupId);
+        $user = User::findOrFail(Auth::user()->id);
 
         $groupUsersCount = $group->users()->count();
 
         $messageInfo = [
             'thread_id' => NULL,
             'group_id' => $groupId,
-            'user_id' => $user,
+            'user_id' => $user->id,
             'message' => $request->message,
             'role' => 'user'
         ];
 
-        Messages::create($messageInfo);
+        $message = Messages::create($messageInfo);
+        broadcast(new NewGroupMessage([
+            'id' => $message->id,
+            'role' => 'user',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                // Include other relevant user data
+            ],
+            'message' => $message->message,
+            // Include other relevant message data
+        ], $groupId));
 
+        // broadcast(new NewGroupMessage($message))->toOthers();
         if ($groupUsersCount > 1 && $isAssistantMessage) {
             $aiMessageInfo = $this->sendMessageToAi($request->message,$groupId);
-            Messages::create($aiMessageInfo);
+            $aiMessage = Messages::create($aiMessageInfo);
+
+            broadcast(new NewGroupMessage([
+                'id' => $aiMessage->id,
+                'role' => 'assistant',
+                'message' => $aiMessage->message,
+                // Include other relevant message data
+            ], $groupId));
+            // broadcast(new NewGroupMessage($aiMessage))->toOthers();
         } elseif ($groupUsersCount == 1) {
             $aiMessageInfo = $this->sendMessageToAi($request->message,$groupId);
-            Messages::create($aiMessageInfo);
+            $aiMessage = Messages::create($aiMessageInfo);
+
+            broadcast(new NewGroupMessage([
+                'id' => $aiMessage->id,
+                'role' => 'assistant',
+                'message' => $aiMessage->message,
+                // Include other relevant message data
+            ], $groupId));
         }
 
-        return redirect()->route('groupChat', ['groupId' => $groupId]);
+        return response()->json(['message' => [
+            'id' => $message->id,
+            'role' => 'user',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+            ],
+            'message' => $message->message,
+        ]]);
+        // return redirect()->route('groupChat', ['groupId' => $groupId]);
     }
 
     public function sendMessageToAi($message,$groupId)
@@ -328,29 +366,9 @@ class GroupChatController extends Controller
 
         return [];
     }
-    // public function searchUserAi(Request $request)
-    // {
-    //     $query = $request->input('query');
-    //     $groupId = $request->input('groupId');
-
-    //     // Search for users
-    //     $userQuery = User::whereHas('groups', function ($query) use ($groupId) {
-    //         $query->where('group_id', $groupId);
-    //     });
-
-    //     if ($query != null) {
-    //         $userQuery->where('name', 'like', '%' . $query . '%');
-    //     }
-
-    //     $users = $userQuery->where('id', '!=', Auth::user()->id)->limit(5)->get();
-
-    //     // Search for assistants
-    //     $group = Group::where('id', $groupId)->first();
-    //     $grpAssistant = Assistants::where('id', $group->assistant_id)->first();
-
-    //     $assistant = $this->client->assistants()->retrieve($grpAssistant->assistant_id);
-
-    //     return response()->json(['users' => $users, 'assistant' => $assistant]);
-    // }
+    
+    public function websocket() {
+        event(new groupChatWebSocket);
+    }
 
 }

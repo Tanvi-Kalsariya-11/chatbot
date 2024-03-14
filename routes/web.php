@@ -77,6 +77,9 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/retrieve-group-messages/{groupId}',[GroupChatController::class,'retrieveGroupChat'])->name('retrieveGroupChat');
     Route::get('/latestTimestamp/{groupId}', [GroupChatController::class , 'latestTimestamp'])->name('latestTimestamp');
 
-    // Route::get('/search-users-and-assistants', [GroupChatController::class, 'searchUserAi']);
+    
+    // Web Socket
+    Route::get('/websocket', [GroupChatController::class, 'websocket']);
+    Route::view('chat-websocket','chatWebsocket');
 
 });

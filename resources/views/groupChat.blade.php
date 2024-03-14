@@ -68,60 +68,33 @@
                             </div>
 
                             <div class="box-body">
-
                                 <div class="direct-chat-messages" id="chatMessages">
                                     @if (isset($messages))
                                         @foreach ($messages as $message)
-                                            <div class="direct-chat-msg">
-                                                @if ($message['role'] == 'assistant')
-                                                    <div class="direct-chat-info clearfix">
-                                                        <span class="direct-chat-name pull-left">Assistant</span>
-                                                    </div>
-
-                                                    <img class="direct-chat-img"
-                                                        src="https://img.icons8.com/color/36/000000/administrator-male.png"
-                                                        alt="message user image">
-
-                                                    <div class="direct-chat-text">
+                                            <div class="direct-chat-msg {{ $message['role'] == 'user' ? 'right' : '' }}">
+                                                <div class="direct-chat-info clearfix">
+                                                    <span class="direct-chat-name pull-left">{{ $message['role'] == 'user' ? $message->user->name : 'Assistant' }}</span>
+                                                </div>
+                                                <img class="direct-chat-img" src="{{ $message['role'] == 'user' ? 'https://img.icons8.com/office/36/000000/person-female.png' : 'https://img.icons8.com/color/36/000000/administrator-male.png' }}" alt="message user image">
+                                                <div class="direct-chat-text">
+                                                    @if ($message['role'] == 'assistant')
                                                         <pre>{{ $message['message'] }}</pre>
-                                                        {{-- <pre>Assistant message</pre> --}}
-                                                    </div>
-                                                @endif
-                                            </div>
-
-                                            <div class="direct-chat-msg right">
-                                                @if ($message['role'] == 'user')
-                                                    <div class="direct-chat-info clearfix">
-                                                        <span
-                                                            class="direct-chat-name pull-left">{{ $message->user->name }}</span>
-                                                    </div>
-                                                    <img class="direct-chat-img"
-                                                        src="https://img.icons8.com/office/36/000000/person-female.png"
-                                                        alt="message user image">
-
-                                                    <div class="direct-chat-text">
+                                                    @else
                                                         <p>{{ $message['message'] }}</p>
-                                                        {{-- <p>User Message</p> --}}
-                                                    </div>
-                                                @endif
+                                                    @endif
+                                                </div>
                                             </div>
                                         @endforeach
                                     @else
                                         <p>Select Thread</p>
                                     @endif
-
                                     <div class="direct-chat-msg" id="typingLoaderBlock" style="display: none;">
                                         <div class="direct-chat-info clearfix">
                                             <span class="direct-chat-name pull-left">Assistant</span>
                                         </div>
-
-                                        <img class="direct-chat-img"
-                                            src="https://img.icons8.com/color/36/000000/administrator-male.png"
-                                            alt="message user image">
-
+                                        <img class="direct-chat-img" src="https://img.icons8.com/color/36/000000/administrator-male.png" alt="message user image">
                                         <div class="direct-chat-text bg-loader">
-                                            <pre id="typingLoader" class="loading medium"><span>.</span><span>.</span><span>.</span></pre>
-                                        </div>
+                                            <pre id="typingLoader" class="loading medium">            </div>
                                     </div>
                                 </div>
                             </div>
@@ -151,11 +124,84 @@
 @endsection
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
+{{-- <script src="{{ asset('js/app.js') }}"></script> --}}
+@vite('resources/js/app.js')
 
+
+{{-- <script src="{{ asset('js/app.js') }}"></script> --}}
+
+{{-- <script>
+    Echo.private(`group.${groupId}`)
+        .listen('NewGroupMessage', (e) => {
+            console.log(e.message);
+        });
+</script> --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let chatMessages = document.getElementById('chatMessages');
+        let messageInput = document.getElementById('messageInput');
+        let sendMessageBtn = document.getElementById('sendMessageBtn');
+        let messageForm = document.getElementById('messageForm');
+       
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        messageInput.focus();
+       
+        let groupId = {{$group['id']}};
+        Echo.private(`group.${groupId}`)
+        .listen('NewGroupMessage', (e) => {
+            let message = e.message;
+            appendMessage(message);
+        });
+        
+        messageForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            sendMessage();
+        });
+        
+        sendMessageBtn.addEventListener('click', function () {
+            sendMessage();
+        });
+        
+        function sendMessage() {
+            let message = messageInput.value.trim();
+            if (message !== '') {
+                axios.post(messageForm.action, {
+                    message: message
+                })
+                .then(function (response) {
+                    messageInput.value = '';
+                })
+                .catch(function (error) {
+                    console.error(error);
+                });
+            }
+        }
+        
+        function appendMessage(message) {
+            let messageElement = document.createElement('div');
+            messageElement.classList.add('direct-chat-msg');
+            if (message.role === 'user') {
+                messageElement.classList.add('right');
+            }
+            messageElement.innerHTML = `
+                <div class="direct-chat-info clearfix">
+                    <span class="direct-chat-name pull-left">${message.role === 'user' ? message.user.name : 'Assistant'}</span>
+                </div>
+                <img class="direct-chat-img" src="${message.role === 'user' ? 'https://img.icons8.com/office/36/000000/person-female.png' : 'https://img.icons8.com/color/36/000000/administrator-male.png'}" alt="message user image">
+                <div class="direct-chat-text">
+                    ${message.role === 'assistant' ? '<pre>' + message.message + '</pre>' : '<p>' + message.message + '</p>'}
+                </div>
+            `;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            messageInput.value = '';
+        }
+    });
+</script>
 
 {{-- <script src="{{ asset('assets/js/groupChat.js') }}"></script> --}}
 
-<script>
+{{-- <script>
     document.addEventListener("DOMContentLoaded", function() {
         const chatMessages = document.getElementById("chatMessages");
         const messageInput = document.getElementById("messageInput");
@@ -242,7 +288,7 @@
             });
         });
     });
-</script>
+</script> --}}
 
 <script>
     // var groupId = {{ $group->id ?? null }};
