@@ -13,18 +13,18 @@
     <link href=" {{ asset('assets/js/bootstrap.bundle.min.js') }} " rel="stylesheet" />
     <link href=" {{ asset('assets/js/jquery.min.js') }} " rel="stylesheet" />
     <link href=" {{ asset('assets/css/font-awesome.css') }} " rel="stylesheet" /> --}}
-    
-    @extends('layout')
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Chatbot</title>
-    
-    
-    {{-- <style></style>
+
+@extends('layout')
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>Chatbot</title>
+
+
+{{-- <style></style>
     </head>
     
     <body> --}}
-        @section('content')
-        <link href="{{ asset('assets/css/chatbot.css') }}" rel="stylesheet" />
+@section('content')
+    <link href="{{ asset('assets/css/chatbot.css') }}" rel="stylesheet" />
     {{-- <h1>Chatbot View</h1> --}}
 
     <!-- Generate a URL for the getThread route with the id parameter -->
@@ -33,17 +33,22 @@
     <div class="page-content page-container" id="page-content">
         <div class="row">
             <div class="col-md-3 list-group">
-                <a href="{{route('listUserAssistants')}}" class="list-group-item list-group-item-action list-group-item-info fs-5">
+                <a href="{{ route('listUserAssistants') }}"
+                    class="list-group-item list-group-item-action list-group-item-info fs-5">
                     Back to Assistant List
                 </a>
                 @if (isset($threads))
                     @foreach ($threads as $thread)
-                    <div class="list-group-item d-flex list-group-item-action justify-content-between align-items-center {{isset($threadId) && $threadId == $thread->thread_id ? 'list-group-item-dark' : ''}}">
-                        <a href="{{ route('getThread', ['assistantId' => $thread->assistant_id, 'id' => $thread->thread_id]) }}" class="text-decoration-none">
-                            {{ $thread->thread_id }}
-                        </a>
-                        <span class="badge text-danger text-decoration-none"><a href="{{route('deleteThread', ['assistantId'=>$thread->assistant_id ,'threadId'=> $thread->thread_id])}}"><i class="fa-solid fa-trash-can"></i></a></span>
-                    </div>
+                        <div
+                            class="list-group-item d-flex list-group-item-action justify-content-between align-items-center {{ isset($threadId) && $threadId == $thread->thread_id ? 'list-group-item-dark' : '' }}">
+                            <a href="{{ route('getThread', ['assistantId' => $thread->assistant_id, 'id' => $thread->thread_id]) }}"
+                                class="text-decoration-none">
+                                {{ $thread->thread_id }}
+                            </a>
+                            <span class="badge text-danger text-decoration-none"><a
+                                    href="{{ route('deleteThread', ['assistantId' => $thread->assistant_id, 'threadId' => $thread->thread_id]) }}"><i
+                                        class="fa-solid fa-trash-can"></i></a></span>
+                        </div>
                     @endforeach
                 @endif
             </div>
@@ -100,7 +105,6 @@
                                     @else
                                         <p>Select Thread</p>
                                     @endif
-
                                     <div class="direct-chat-msg" id="typingLoaderBlock" style="display: none;">
                                         <div class="direct-chat-info clearfix">
                                             <span class="direct-chat-name pull-left">Assistant</span>
@@ -112,7 +116,6 @@
 
                                         <div class="direct-chat-text bg-loader">
                                             <pre id="typingLoader" class="loading medium"><span>.</span><span>.</span><span>.</span></pre>
-                                            {{-- <div id="typingLoader">Typing...</div> --}}
                                         </div>
                                     </div>
                                 </div>
@@ -123,7 +126,6 @@
                                     action="{{ route('createMessage', ['assistantId' => $assistantId, 'threadId' => $threadId]) }}"
                                     method="post">
                                     @csrf
-                                    {{-- <input type="hidden" name="threadId" value="thread_28YHDt2qejm6HYNdrxajEiad"> --}}
                                     <div class="input-group">
                                         <input id="messageInput" type="text" name="message"
                                             placeholder="Type Message ..." class="form-control" autocomplete="off">
@@ -141,13 +143,111 @@
         </div>
     </div>
 
-    {{-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
-        integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous">
+    {{-- <script src="{{ asset('assets/js/chatbot.js') }}"></script> --}}
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        const chatMessages = document.getElementById("chatMessages");
+    
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        messageInput.focus();
+    
+        document.getElementById('messageForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            sendMessage();
+        });
+    
+        document.getElementById('sendMessageBtn').addEventListener('click', function() {
+            sendMessage();
+        });
+    
+        function displayTypingLoader(show) {
+            typingLoaderBlock.style.display = show ? "block" : "none";
+
+            // If showing, append it to the end of the chat
+            if (show) {
+                chatMessages.appendChild(typingLoaderBlock);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        function sendMessage() {
+            var messageInput = document.getElementById('messageInput');
+            var message = messageInput.value;
+            var chatMessages = document.getElementById('chatMessages');
+            // Clear the message input
+            messageInput.value = '';
+            // Send the user message to the backend
+            fetch('{{ route('createMessage', ['assistantId' => $assistantId, 'threadId' => $threadId]) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    message: message
+                })
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                // Handle the response and update the chat messages
+                var userMessage = data.message;
+                // Append the user message to the chat messages
+                var userMessageHtml = `
+                <div class="direct-chat-msg right">
+                    <div class="direct-chat-info clearfix">
+                        <span class="direct-chat-name pull-left">User</span>
+                    </div>
+                    <img class="direct-chat-img" src="https://img.icons8.com/office/36/000000/person-female.png" alt="message user image">
+                    <div class="direct-chat-text">
+                        <p>${userMessage.content[0].text.value}</p>
+                    </div>
+                </div>
+                `;
+                chatMessages.innerHTML += userMessageHtml;
+                // Initiate the streaming response after appending user message
+                initiateStreamingResponse();
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+            });
+        }
+    
+        function initiateStreamingResponse() {
+            // Append the assistant's response block to the chat messages
+            var assistantResponseHtml = `
+            <div class="direct-chat-msg">
+                <div class="direct-chat-info clearfix">
+                    <span class="direct-chat-name pull-left">Assistant</span>
+                </div>
+                <img class="direct-chat-img" src="https://img.icons8.com/color/36/000000/administrator-male.png" alt="message user image">
+                <div class="direct-chat-text">
+                    <pre class="streamedResponse"></pre>
+                </div>
+            </div>
+            `;
+            chatMessages.innerHTML += assistantResponseHtml;
+            // Initiate the streaming response
+            var streamedResponse = document.querySelector('.direct-chat-msg:last-child .streamedResponse');
+            var eventSource = new EventSource(
+                '{{ route('streamResponse', ['threadId' => $threadId, 'assistantId' => $assistantId]) }}');
+            eventSource.onmessage = function(event) {
+                var data = event.data;
+                if (data === '[DONE]') {
+                    eventSource.close();
+                } else {
+                    streamedResponse.innerHTML += data;
+                    streamedResponse.scrollTop = streamedResponse.scrollHeight;
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            };
+            eventSource.onerror = function(event) {
+                console.error('EventSource error:', event);
+                streamedResponse.innerHTML += '<p class="error">An error occurred. Please try again.</p>';
+                eventSource.close();
+            };
+        }
     </script>
-    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script> --}}
-    <script src="{{ asset('assets/js/chatbot.js') }}"></script>
-
-{{-- </body>
-
-</html> --}}
 @endsection

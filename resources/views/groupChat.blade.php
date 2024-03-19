@@ -126,16 +126,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.8/clipboard.min.js"></script>
 {{-- <script src="{{ asset('js/app.js') }}"></script> --}}
 @vite('resources/js/app.js')
-
-
-{{-- <script src="{{ asset('js/app.js') }}"></script> --}}
-
-{{-- <script>
-    Echo.private(`group.${groupId}`)
-        .listen('NewGroupMessage', (e) => {
-            console.log(e.message);
-        });
-</script> --}}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         let chatMessages = document.getElementById('chatMessages');

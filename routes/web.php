@@ -61,6 +61,11 @@ Route::group(['middleware' => 'auth'], function () {
     // AUTHENTICATED USER DATA
     Route::get('/user-assistant', [AiController::class, 'listUserAssistants'])->name('listUserAssistants');
     
+    // Streaming
+    Route::get('stream-response/{threadId}/{assistantId}', [AiController::class, 'streamResponse'])->name('streamResponse');
+    
+
+
     // Group
     // Route::view('/group', 'chatGroup');
     Route::get('/group', [GroupChatController::class,'listGroups'])->name('listGroups');

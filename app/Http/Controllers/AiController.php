@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\StreamAssistantResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Assistants;
 use App\Models\Thread;
@@ -44,33 +45,33 @@ class AiController extends Controller
             $assistantFileId = $assistantFile['id'];
         }
 
-            // Create assistant with the attached file
-            $assistant = $this->client->assistants()->create([
-                'instructions' => $request->assistantInstruction,
-                'name' => $request->assistantName,
-                'tools' => [
-                    [
-                        'type' => 'retrieval',
-                    ],
+        // Create assistant with the attached file
+        $assistant = $this->client->assistants()->create([
+            'instructions' => $request->assistantInstruction,
+            'name' => $request->assistantName,
+            'tools' => [
+                [
+                    'type' => 'retrieval',
                 ],
-                'model' => 'gpt-4-1106-preview',
-                'file_ids' => $assistantFileId ? [$assistantFileId] : [],
-            ]);
-            // $assistant = $this->client->assistants()->create([
-            //     'instructions' => $request->assistantInstruction,
-            //     'name' => $request->assistantName,
-            //     'tools' => [
-            //         [
-            //             'type' => 'retrieval',
-            //         ],
-            //     ],
-            //     'model' => 'gpt-4-1106-preview',
-            // ]);
-            // error_log($assistant->id);
-            Assistants::create([
-                'assistant_id' => $assistant->id,
-                'user_id' => Auth::user()->id
-            ]);
+            ],
+            'model' => 'gpt-4-1106-preview',
+            'file_ids' => $assistantFileId ? [$assistantFileId] : [],
+        ]);
+        // $assistant = $this->client->assistants()->create([
+        //     'instructions' => $request->assistantInstruction,
+        //     'name' => $request->assistantName,
+        //     'tools' => [
+        //         [
+        //             'type' => 'retrieval',
+        //         ],
+        //     ],
+        //     'model' => 'gpt-4-1106-preview',
+        // ]);
+        // error_log($assistant->id);
+        Assistants::create([
+            'assistant_id' => $assistant->id,
+            'user_id' => Auth::user()->id
+        ]);
 
         // $assistant = $response->toArray();
         return redirect()->route('listUserAssistants'); // ['id' => 'asst_VAGZ8DjGncGKfLCBojPPJXVU', ...]
@@ -88,8 +89,7 @@ class AiController extends Controller
 
     public function listUserAssistants()
     {
-        if(Auth::check())
-        {
+        if (Auth::check()) {
             $user = Auth::user();
             $userAssistants = Assistants::where('user_id', $user->id)->get();
 
@@ -104,29 +104,28 @@ class AiController extends Controller
 
             return view('assistant', ['assistants' => $assistant]);
         }
-        
+
         return redirect()->route('login')
             ->withErrors([
-            'email' => 'Please login to access the Assistants.',
-        ])->onlyInput('email');
+                'email' => 'Please login to access the Assistants.',
+            ])->onlyInput('email');
     }
 
     public function retrieveAssistant($assistantId)
     {
         $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
-        
+
         $assistantFile = [];
         $files = $retrieveResponse->fileIds;
         foreach ($files as $file) {
             $retrieveFile = $this->client->files()->retrieve($file);
             $assistantFile[] = $retrieveFile->toArray();
         }
-        
+
         $assistant = $retrieveResponse->toArray();
 
         $assistantsList = [];
-        if(Auth::check())
-        {
+        if (Auth::check()) {
             $user = Auth::user();
             $userAssistants = Assistants::where('user_id', $user->id)->get();
 
@@ -161,7 +160,7 @@ class AiController extends Controller
 
             $uploadFiles = array_merge($existingAssistantFiles, [$newAssistantFile['id']]);
             // Assuming you want to associate the uploaded file with the assistant
-        } 
+        }
 
         $response = $this->client->assistants()->modify($assistantId, [
             'instructions' => $request->assistantInstruction,
@@ -187,7 +186,7 @@ class AiController extends Controller
 
         $files = $response->toArray();
         // Extract file IDs from the response
-        if (isset($files['data']) && !empty($files['data'])) {
+        if (isset ($files['data']) && !empty ($files['data'])) {
             // Extract all file IDs from the response
             $fileIds = array_map(function ($file) {
                 return $file['id'];
@@ -231,7 +230,8 @@ class AiController extends Controller
     //     return redirect()->route('getThread', ['assistantId' => $assistantId, 'id' => $response->id]);
     // }
 
-    public function getLastThread($assistantId) {
+    public function getLastThread($assistantId)
+    {
         $thread = Thread::where('assistant_id', $assistantId)
             ->orderBy('created_at', 'desc')
             ->value('thread_id');
@@ -242,7 +242,7 @@ class AiController extends Controller
             return redirect()->route('startChat', ['assistantId' => $assistantId]);
         }
     }
-    
+
     public function createAndRunThread($assistantId)
     {
         $response = $this->client->threads()->createAndRun([
@@ -256,7 +256,7 @@ class AiController extends Controller
                         ],
                     ],
             ],
-        ],);
+        ], );
 
         Thread::create([
             'thread_id' => $response->threadId,
@@ -283,13 +283,14 @@ class AiController extends Controller
         $messageList = $this->client->threads()->messages()->list(
             threadId: $threadRun->threadId,
         );
-        
+
         $answer = $messageList->data[0]->content[0]->text->value;
 
         return $messageList;
     }
 
-    public function startChat($assistantId) {
+    public function startChat($assistantId)
+    {
         $threadRun = $this->createAndRunThread($assistantId);
 
         $data = $this->loadAnswer($threadRun);
@@ -308,7 +309,7 @@ class AiController extends Controller
         // get assistant response
         $response = $this->client->threads()->messages()->list($threadId);
         $messageList = $response->toArray();
-        
+
         // retrieve assistant 
         $retrieveResponse = $this->client->assistants()->retrieve($assistantId);
         $assistantName = $retrieveResponse->name;
@@ -316,22 +317,23 @@ class AiController extends Controller
         // order messages and skip first message
         $sortedMessages = collect($messageList['data'])->sortBy('created_at')->values()->all();
         $data = array_slice($sortedMessages, 1);
-        
+
         // Get thread list of an assistant
-        $threads = Thread::where('assistant_id', $assistantId)->orderBy('created_at','desc')->get();
+        $threads = Thread::where('assistant_id', $assistantId)->orderBy('created_at', 'desc')->get();
 
         // $data['data'] = collect($data['data'])->sortBy('created_at')->values()->all();
         return view("chatbot", compact('data', 'threadId', 'assistantId', 'assistantName', 'threads'));
     }
 
-    public function deleteThread($assistantId,$threadId) {
+    public function deleteThread($assistantId, $threadId)
+    {
         // delete thread from database
         Thread::where('thread_id', $threadId)->delete();
-        
+
         // delete thread from assistant
         $this->client->threads()->delete($threadId);
 
-        return redirect()->route('getLastThread', ['assistantId'=> $assistantId]);
+        return redirect()->route('getLastThread', ['assistantId' => $assistantId]);
     }
     /**
      * Endpoint: /thread/{id}/message
@@ -349,19 +351,93 @@ class AiController extends Controller
 
         $message = $response->toArray();
 
+        // $this->runStream($threadId, $assistantId);
         // Call OpenAI API to run thread
-        $response = $this->client->threads()->runs()->create(
-            threadId: $threadId,
-            parameters: [
-                'assistant_id' => $assistantId,
-            ]
-        );
+        // $response = $this->client->threads()->runs()->create(
+        //     threadId: $threadId,
+        //     parameters: [
+        //         'assistant_id' => $assistantId,
+        //     ]
+        // );
 
-        $data = $response->toArray();
+        // $data = $response->toArray();
 
-        return response()->json(['message' => $message, 'data' => $data]);
+        // return response()->json(['message' => $message, 'data' => $data]);
+        return response()->json(['message' => $message]);
     }
 
+
+    public function streamResponse($threadId, $assistantId)
+    {
+        $client = new Client();
+        // Set the API endpoint URL
+        $url = "https://api.openai.com/v1/threads/$threadId/runs";
+        // Set the request headers
+        $headers = [
+            'Content-Type' => 'application/json',
+            'OpenAI-Beta' => 'assistants=v1',
+            'Authorization' => 'Bearer ' . $this->openaiApiKey,
+        ];
+        // Set the request body
+        $body = json_encode([
+            'assistant_id' => $assistantId,
+            'stream' => true,
+        ]);
+        // Create a new request
+        $request = new \GuzzleHttp\Psr7\Request('POST', $url, $headers, $body);
+        // Send the request and get the streaming response
+        $response = $client->send($request, [
+            'stream' => true,
+        ]);
+        // Set the response headers for SSE
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('X-Accel-Buffering: no');
+        // Handle the streaming response
+        $body = $response->getBody();
+        $buffer = '';
+        while (!$body->eof()) {
+            $chunk = $body->read(1024);
+            $buffer .= $chunk;
+            // Check if the buffer contains complete events
+            while (($eventStartPos = strpos($buffer, "event: ")) !== false) {
+                $eventEndPos = strpos($buffer, "\n\n", $eventStartPos);
+                if ($eventEndPos === false) {
+                    // Reached the end of the buffer without finding the next event
+                    break;
+                }
+                $eventData = substr($buffer, $eventStartPos, $eventEndPos - $eventStartPos);
+                $buffer = substr($buffer, $eventEndPos + 2);
+                // Extract the event name and JSON data
+                $eventName = trim(substr($eventData, 7, strpos($eventData, "\n") - 7));
+                $jsonData = trim(substr($eventData, strpos($eventData, "data: ") + 6));
+                // Decode the JSON data
+                $data = json_decode($jsonData);
+                if ($data !== null) {
+                    // Process the decoded JSON data based on the event name
+                    if ($eventName === 'thread.message.delta') {
+                        if (isset($data->delta->content)) {
+                            foreach ($data->delta->content as $content) {
+                                if ($content->type === 'text' && isset($content->text->value)) {
+                                    echo 'data: ' . $content->text->value . "\n\n";
+                                    ob_flush();
+                                    flush();
+                                    // broadcast(new StreamAssistantResponse([$content->text->value]));
+                                }
+                            }
+                        }
+                    } elseif ($eventName === 'thread.message.completed') {
+                        echo 'data: [DONE]' . "\n\n";
+                        ob_flush();
+                        flush();
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+        exit();
+    }
 
     /**
      * Endpoint: /thread/{threadId}/run
